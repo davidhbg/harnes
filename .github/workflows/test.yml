@@ -26,6 +26,9 @@ jobs:
         run: npm run build
       - name: Tests
         run: npm test
+        env:
+          # Ink zeichnet bei CI=true nur das letzte Bild; die Tests bedienen die Oberfläche wie ein Mensch
+          CI: 'false'
       - name: Paket installieren und starten
         shell: bash
         run: |

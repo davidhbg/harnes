@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-8b7cf6?style=flat-square">
+  <img alt="Windows · Linux · macOS" src="https://img.shields.io/badge/Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-8b7cf6?style=flat-square">
   <img alt="Node 22+" src="https://img.shields.io/badge/Node-22%2B-c4a7e7?style=flat-square">
   <img alt="Tests" src="https://img.shields.io/badge/Tests-57%20gr%C3%BCn-6fcf97?style=flat-square">
   <img alt="Sprache" src="https://img.shields.io/badge/Oberfl%C3%A4che-Deutsch-f0b98d?style=flat-square">
@@ -19,13 +19,48 @@
 
 ## Installieren – ein Befehl
 
-Voraussetzung ist nur [Node.js](https://nodejs.org) ab Version 22. Dann im Terminal:
+Voraussetzung ist [Node.js](https://nodejs.org) ab Version 22.
+
+### Windows
+
+In PowerShell, cmd oder Windows Terminal:
+
+```powershell
+npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
+```
+
+### Linux
+
+Harnes braucht beim Installieren einmal die üblichen Bauwerkzeuge (für die Terminal-Anbindung).
+Ubuntu / Debian:
+
+```bash
+sudo apt update && sudo apt install -y build-essential python3
+```
+
+Node.js 22 ohne Administratorrechte, z. B. mit [nvm](https://github.com/nvm-sh/nvm) (falls Node noch fehlt):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm install 22
+```
+
+Dann Harnes:
 
 ```bash
 npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
 ```
 
-Danach in jedem Terminal (PowerShell, cmd, Windows Terminal):
+Andere Systeme: Fedora `sudo dnf install -y gcc-c++ make python3`, Arch `sudo pacman -S --needed base-devel python`.
+
+### macOS
+
+```bash
+npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
+```
+
+### Starten
 
 ```bash
 harnes
@@ -35,8 +70,32 @@ Beim ersten Start führt dich eine **Einrichtung** Schritt für Schritt durch al
 arbeitest (Claude-Abo, Codex, API-Schlüssel, lokale Modelle) und das Verbinden jedes Zugangs. Danach
 startest du direkt in deinem Team.
 
-> Ein Update ist derselbe Befehl. Ohne Internet geht es auch mit der Datei aus den
+> **Aktualisieren** ist derselbe Befehl wie Installieren. Ohne Internet geht es auch mit der Datei aus den
 > [Releases](https://github.com/davidhbg/harnes/releases): `npm install -g harnes.tgz`.
+
+### Deinstallieren
+
+Auf allen Systemen:
+
+```bash
+npm uninstall -g harnes
+```
+
+Deine Einstellungen, Schlüssel, Chats und – wenn du keinen eigenen Vault verbunden hast – das Team-Gedächtnis
+bleiben dabei erhalten (im Ordner `.remoteharnes` in deinem Benutzerordner). Wer auch die löschen will:
+
+```powershell
+# Windows (PowerShell)
+Remove-Item -Recurse -Force "$env:USERPROFILE\.remoteharnes"
+```
+
+```bash
+# Linux / macOS
+rm -rf ~/.remoteharnes
+```
+
+> Achtung: Das löscht auch gespeicherte API-Schlüssel und Chat-Verläufe endgültig.
+> Einen eigenen, verbundenen Obsidian-Vault fasst es nicht an.
 
 ---
 
