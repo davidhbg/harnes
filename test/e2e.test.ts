@@ -141,6 +141,28 @@ describe('Oberfläche im echten Terminal (ohne KI)', () => {
     expect(t.exited).toBe(true);
   }, 90_000);
 
+  it('Menü: alle Einträge haben eine Nummer, auch zweistellig per Taste wählbar', async () => {
+    const { t } = start('test:anna', 110, 34, { eingerichtet: true });
+    await t.waitFor('anna (Test-Agent) ist dem Team beigetreten');
+    t.write('\u001b');
+    let s = await t.waitFor('Startseite');
+    expect(s).toMatch(/ 1 Startseite/);
+    expect(s).toMatch(/10 Verlauf durchsuchen/);
+    expect(s).toMatch(/14 Beenden/);
+    // 1 und 3 schnell hintereinander: Eintrag 13 (Hilfe)
+    t.write('1');
+    await pause(150);
+    t.write('3');
+    await t.waitFor('Alle Befehle und Tasten');
+    // 1 allein: nach kurzem Warten Eintrag 1 (Startseite)
+    t.write('\u001b');
+    await pause(300);
+    t.write('\u001b');
+    await t.waitFor(/14 Beenden/);
+    t.write('1');
+    await t.waitFor('Wohin?', 5000);
+  }, 60_000);
+
   it('kleines Fenster und Größenänderung brechen nichts', async () => {
     const { t } = start('test:anna', 60, 16);
     await t.waitFor('Nachricht an das Team');

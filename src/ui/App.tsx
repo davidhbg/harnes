@@ -1,6 +1,6 @@
 import type { EventEmitter } from 'node:events';
 import { Box, Text, useAnimation, useApp, useInput, usePaste, useStdin, useWindowSize } from 'ink';
-import { useEffect, useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { fmtMoney, providerLabel } from '../balance.js';
 import { keyEnvFor, saveKey } from '../config.js';
 import type { Hub } from '../hub/hub.js';
@@ -325,6 +325,38 @@ export function App({ hub, ui, project, onAction }: Props) {
     else ui.menu = mainMenu();
   }
 
+  /**
+   * Auswahl per Zifferntaste. Bis 9 Einträge sofort; bei mehr ist auch eine zweistellige Nummer möglich
+   * (z. B. 1 und dann 2 für den zwölften). Kann noch eine Ziffer folgen, springt die Markierung hin und
+   * der Eintrag öffnet sich nach einem kurzen Moment, wenn keine weitere Ziffer kommt.
+   */
+  const digitTimer = useRef<NodeJS.Timeout | undefined>(undefined);
+  const pickByNumber = (m: Extract<Menu, { kind: 'liste' }>, digit: string) => {
+    if (digitTimer.current) clearTimeout(digitTimer.current);
+    const now = Date.now();
+    const typed = m.typed && m.typedAt && now - m.typedAt < 900 ? m.typed + digit : digit;
+    const n = Number(typed);
+    if (n < 1 || n > m.items.length) {
+      m.typed = undefined;
+      return rerender();
+    }
+    // kann noch eine Ziffer folgen (es gibt Einträge mit dieser Nummer als Anfang)?
+    if (n * 10 <= m.items.length) {
+      m.typed = typed;
+      m.typedAt = now;
+      m.cursor = n - 1;
+      digitTimer.current = setTimeout(() => {
+        if (ui.menu === m && m.typed === typed) {
+          m.typed = undefined;
+          runMenuItem(m, n - 1);
+          rerender();
+        }
+      }, 900);
+      return rerender();
+    }
+    m.typed = undefined;
+    return runMenuItem(m, n - 1);
+  };
   const runMenuItem = (m: Extract<Menu, { kind: 'liste' }>, i: number) => {
     const item = m.items[i];
     if (!item) return;
@@ -476,7 +508,7 @@ export function App({ hub, ui, project, onAction }: Props) {
         if (key.upArrow) m.cursor = (m.cursor - 1 + m.items.length) % m.items.length;
         else if (key.downArrow || key.tab) m.cursor = (m.cursor + 1) % m.items.length;
         else if (key.return) return runMenuItem(m, m.cursor);
-        else if (/^[1-9]$/.test(input)) return runMenuItem(m, Number(input) - 1);
+        else if (/^[0-9]$/.test(input)) return pickByNumber(m, input);
         return rerender();
       }
       if (key.return) return submitMenu(m);
@@ -799,7 +831,8 @@ export function App({ hub, ui, project, onAction }: Props) {
       m.items.forEach((it, i) => {
         const at = i === m.cursor;
         const bg = at ? T.night : undefined;
-        const num = i < 9 ? `${i + 1} ` : '  ';
+        const numW = String(m.items.length).length;
+        const num = `${String(i + 1).padStart(numW)} `;
         const hint = it.hint ? truncate(it.hint, Math.max(4, w - 10 - textWidth(it.label))) : '';
         const label: Span[] = [
           { text: at ? '❯ ' : '  ', color: T.pink, bold: true },

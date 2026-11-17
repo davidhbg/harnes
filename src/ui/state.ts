@@ -35,7 +35,7 @@ export interface MenuItem {
 
 /** Ein Menü ist eine Liste zum Auswählen oder ein Eingabefeld. */
 export type Menu =
-  | { kind: 'liste'; title: string; items: MenuItem[]; cursor: number; back?: () => Menu | undefined }
+  | { kind: 'liste'; title: string; items: MenuItem[]; cursor: number; back?: () => Menu | undefined; typed?: string; typedAt?: number }
   | { kind: 'eingabe'; title: string; label: string; value: string; secret?: boolean; submit: (value: string) => void | Promise<void>; back?: () => Menu | undefined }
 
 export function createUiState(): UiState {

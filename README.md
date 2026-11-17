@@ -4,13 +4,13 @@
 
 <p align="center">
   <b>Claude, Codex, DeepSeek und lokale Modelle arbeiten als <i>ein</i> Team – und du führst es aus einem Fenster.</b><br>
-  Team-Chat · Aufgabenbrett · gemeinsames Gedächtnis in Obsidian · ein Begleiter, der dir mit Stimme auf dem Bildschirm zeigt, wo es langgeht.
+  Team-Chat · Aufgabenbrett · gemeinsames Gedächtnis in Obsidian · MCP · Guthaben im Blick.
 </p>
 
 <p align="center">
   <img alt="Windows 10/11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-8b7cf6?style=flat-square">
   <img alt="Node 22+" src="https://img.shields.io/badge/Node-22%2B-c4a7e7?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-56%20gr%C3%BCn-6fcf97?style=flat-square">
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-57%20gr%C3%BCn-6fcf97?style=flat-square">
   <img alt="Sprache" src="https://img.shields.io/badge/Oberfl%C3%A4che-Deutsch-f0b98d?style=flat-square">
   <img alt="Lizenz" src="https://img.shields.io/badge/Lizenz-frei%20nutzbar%2C%20alle%20Rechte%20vorbehalten-9a93b8?style=flat-square">
 </p>
@@ -33,7 +33,7 @@ harnes
 
 Beim ersten Start führt dich eine **Einrichtung** Schritt für Schritt durch alles: dein Name, womit du
 arbeitest (Claude-Abo, Codex, API-Schlüssel, lokale Modelle) und das Verbinden jedes Zugangs. Danach
-startest du direkt in deinem Team. Der Begleiter ist fertig gebaut dabei.
+startest du direkt in deinem Team.
 
 > Ein Update ist derselbe Befehl. Ohne Internet geht es auch mit der Datei aus den
 > [Releases](https://github.com/davidhbg/harnes/releases): `npm install -g harnes.tgz`.
@@ -55,7 +55,7 @@ Fehlermeldungen.
 | **Sitzungen** | Claude Code mit Abo (das echte `claude`), Claude über API, Codex, DeepSeek, OpenRouter, Ollama, LM Studio – gemischt in einem Team |
 | **Zusammenarbeit** | Nachrichten kommen an, sobald eine Sitzung Pause macht; Dringendes unterbricht. Sitzungen reservieren Aufgaben und Dateien, damit sich niemand überschreibt |
 | **Aufgabenbrett** | Aufgaben anlegen, zuweisen, mit Nachweis abhaken; wiederkehrende Aufgaben („täglich 08:00 Tests“) |
-| **Gedächtnis** | Ein Obsidian-Vault je Projekt: Chat-Protokolle, Entscheidungen, Wissen, Notizen jeder Sitzung. Eigenen Vault verbinden mit `/vault <ordner>` |
+| **Gedächtnis** ⭐ | **Empfohlen:** ein Obsidian-Vault je Projekt – Chat-Protokolle, Entscheidungen, Wissen, Notizen jeder Sitzung (mehr unten) |
 | **Store** | GitHub-Repos suchen und dem Team als Nachschlagewerk bereitstellen |
 | **MCP** | Eigene MCP-Server bekommen alle Sitzungen – auch lokale Modelle |
 | **Überblick** | Verbrauch je Sitzung, Budget-Grenzen, **Guthaben** von DeepSeek/OpenRouter direkt unten rechts |
@@ -63,40 +63,38 @@ Fehlermeldungen.
 
 <p align="center"><img src="docs/bilder/startseite.png" alt="Startseite von Harnes" width="92%"></p>
 
-### Der Begleiter
+### Gemeinsames Gedächtnis – empfohlen ⭐
 
-<p align="center"><img src="docs/bilder/begleiter.png" alt="Der Begleiter zeigt auf „Dunkel“ und erklärt mit Stimme" width="80%"></p>
+Harnes legt für jedes Projekt ein **Obsidian-Vault** an. Darin landet automatisch alles, was dein Team
+weiß: Protokolle aller Chats, Absprachen, das Aufgabenbrett und die Arbeitsnotizen jeder Sitzung.
+Jede Sitzung kann dort nachlesen – so sind alle auf demselben Stand, auch nach einem Neustart oder
+wenn eine neue Sitzung dazukommt. Wir empfehlen, es immer zu nutzen.
 
-Ein kleiner leuchtender Zeiger lebt neben deiner Maus – überall auf dem Bildschirm, in jedem Programm.
+```
+<Projekt>/
+  00 <Projekt> – Übersicht.md    Ziel und Einstieg (gehört dir)
+  Team.md · Aufgaben.md          schreibt Harnes
+  Entscheidungen.md              Absprachen
+  Chat/                          Protokolle von Team- und Privatchats
+  Agenten/<Name>.md              Arbeitsnotizen jeder Sitzung
+  Wissen/                        Erkenntnisse für alle
+```
 
-- **Strg + Alt halten und sprechen.** Er sieht deinen Bildschirm, antwortet mit Stimme und **fliegt genau
-  zu der Stelle**, über die er gerade spricht. Im Bild: „Wie mache ich diese Seite dunkel?“
-- **Gespräch wie bei ChatGPT Voice:** zweimal kurz Strg + Alt tippen, dann einfach reden. Reinreden unterbricht.
-- **Meldet sich, wenn dein Team dich braucht:** Freigaben, Nachrichten an dich, Budget erreicht.
-- Starten mit `/begleiter` oder über die Startseite. Strg+Alt+M stumm · Strg+Alt+B ausblenden · Strg+Alt+Q beenden.
-- Geschrieben in Rust, nutzt dein Claude-Abo über das offizielle `claude`-Programm.
+Deinen eigenen Obsidian-Vault verbindest du mit `/vault <ordner>` oder über Startseite › Einstellungen ›
+Vault verbinden. Harnes legt darin einen Ordner je Projekt an und überschreibt nichts.
 
 ---
 
-## Sicherheit
+## Coming soon: Der Begleiter
 
-Harnes ist so gebaut, dass Schlüssel und Zugänge bei dir bleiben. Es gibt keinen Harnes-Server und
-keine Cloud: Jede Installation ist für sich, jeder Nutzer hat nur seine eigenen Anmeldungen und
-Schlüssel – niemand kann über Harnes an die eines anderen kommen.
+<p align="center"><img src="docs/bilder/begleiter.png" alt="Vorschau: Der Begleiter zeigt auf „Dunkel“ und erklärt mit Stimme" width="80%"></p>
 
-- **API-Schlüssel** liegen nur auf deinem Rechner, in deinem eigenen Benutzerordner
-  (`~/.remoteharnes/keys.json`, für andere Windows-Konten nicht lesbar) oder in Umgebungsvariablen –
-  nie im Vault, nie in Protokollen, nie im Paket, in der Oberfläche nur verdeckt. Ein Schlüssel geht
-  ausschließlich an den Anbieter, zu dem er gehört.
-- **Gestartete Programme** bekommen nur die Schlüssel, die sie selbst brauchen – nicht die der anderen Anbieter.
-- **Claude-Abo:** Harnes startet nur das echte `claude`-Programm. Anmeldedaten von Claude werden nie
-  gelesen, kopiert oder weitergegeben.
-- **Lokale Server** lauschen nur auf `127.0.0.1`, jede Sitzung hat einen eigenen Zugangsschlüssel;
-  Anfragen aus Webseiten (DNS-Rebinding) werden abgewiesen.
-- **Freigaben:** Befehle lokaler Modelle, heikle Dateien (Git-Hooks, Einstellungen, Skripte) und
-  Bildschirmfotos brauchen deine Zustimmung.
+Ein kleiner leuchtender Zeiger, der neben deiner Maus lebt – überall auf dem Bildschirm, in jedem Programm.
+**Strg + Alt halten, einfach fragen:** Er sieht deinen Bildschirm, antwortet mit Stimme und fliegt genau zu
+der Stelle, über die er gerade spricht. Dazu ein Gesprächsmodus wie bei ChatGPT Voice und Meldungen, wenn
+dein Team dich braucht. Im Bild eine Vorschau: „Wie mache ich diese Seite dunkel?“
 
-Eine Lücke gefunden? Bitte über die *Issues* melden, ohne Details zu Angriffen öffentlich zu machen.
+*In Arbeit – kommt in einer der nächsten Versionen.*
 
 ---
 
@@ -108,7 +106,6 @@ harnes C:\Pfad\zum\Projekt  # in einem anderen Ordner
 harnes --fenster            # in einem eigenen Terminal-Fenster
 harnes --mit claude,codex   # gleich mit Sitzungen starten
 harnes --mit test:anna,test:ben   # ausprobieren, ohne einen Token zu verbrauchen
-harnes --begleiter          # nur den Begleiter starten
 ```
 
 | Befehl | Wirkung |
@@ -131,53 +128,6 @@ harnes --begleiter          # nur den Begleiter starten
 | Strg+R | frühere Eingaben durchsuchen |
 | Strg+L | Privatchat ↔ Arbeitsprotokoll |
 | F12 | Terminal einer Claude-Abo-Sitzung öffnen |
-
-### Gemeinsames Gedächtnis (Obsidian)
-
-```
-<Projekt>/
-  00 <Projekt> – Übersicht.md    Ziel und Einstieg (gehört dir)
-  Team.md · Aufgaben.md          schreibt Harnes
-  Entscheidungen.md              Absprachen
-  Chat/                          Protokolle von Team- und Privatchats
-  Agenten/<Name>.md              Arbeitsnotizen jeder Sitzung
-  Wissen/                        Erkenntnisse für alle
-```
-
-Jede Sitzung darf alles lesen; geschrieben wird nur über die Team-Werkzeuge.
-
-### Einstellungen
-
-`~/.remoteharnes/config.json` (legt die Einrichtung an): `benutzer`, `vaultRoot`, `kettenLimit`,
-`budget`, `claudeAbo`, `claudeApi`, `codex`, `anbieter.<name>` (`baseUrl`, `apiKeyEnv`, `modell`), `mcp`.
-Eigene Bilder für Startseite und Einrichtung: Braille-Bilder als `bilder/startseite-1.txt …` und
-`bilder/verbinden.txt` im selben Ordner.
-
----
-
-## Entwicklung
-
-```bash
-git clone https://github.com/davidhbg/harnes.git
-cd harnes
-npm install
-npm run build
-npm test          # 56 Tests, ganz ohne KI und ohne Tokens
-npm run paket     # Installationspaket (paket/harnes-<version>.tgz)
-```
-
-Die Tests bedienen die Oberfläche in einem echten Pseudo-Terminal wie ein Mensch und nutzen Nachbauten
-von Claude Code, der OpenAI-Schnittstelle und der Guthaben-Abfragen. Der Begleiter liegt in `begleiter/`
-(Rust): `cargo build --release`.
-
-```
-src/cli.tsx       Start im Terminal
-src/hub/          Zentrale: Nachrichten, Regeln, Aufgaben, Vault, lokaler Server
-src/adapters/     Anbindungen: claude-abo, claude-api, codex, openai (+ lokal), echo (Test)
-src/ui/           Oberfläche (Ink)
-begleiter/        Begleiter in Rust: Zeiger, Sprache, Stimme
-browser/          HarnesBrowser (Electron, Versuch)
-```
 
 ---
 
