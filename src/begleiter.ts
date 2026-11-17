@@ -18,6 +18,7 @@ export function begleiterExe(): string {
 
 /** Startet den Begleiter (läuft er schon, beendet sich der zweite Start von selbst). */
 export function startBegleiter(): string {
+  if (process.platform !== 'win32') return 'Den Begleiter gibt es bisher nur für Windows.';
   const exe = begleiterExe();
   if (!existsSync(exe)) return 'Der Begleiter ist noch nicht gebaut (im Ordner begleiter: cargo build --release).';
   const child = spawn(exe, [], { detached: true, stdio: 'ignore', windowsHide: false });

@@ -1,0 +1,41 @@
+# Prüft Harnes bei jedem Push auf Linux, macOS und Windows:
+# bauen, alle Tests, dann das Installationspaket wirklich installieren und starten.
+name: Tests
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Abhängigkeiten
+        run: npm ci
+      - name: Bauen
+        run: npm run build
+      - name: Tests
+        run: npm test
+      - name: Paket installieren und starten
+        shell: bash
+        run: |
+          npm pack
+          npm install -g ./harnes-*.tgz
+          harnes --version
+          harnes --hilfe | head -5
+      - name: Deinstallieren
+        shell: bash
+        run: |
+          npm uninstall -g harnes
+          if command -v harnes; then echo "harnes ist noch da"; exit 1; fi
+          echo "sauber entfernt"
