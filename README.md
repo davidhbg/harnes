@@ -23,11 +23,14 @@ Voraussetzung ist [Node.js](https://nodejs.org) ab Version 22.
 
 ### Windows
 
-In PowerShell, cmd oder Windows Terminal:
+In PowerShell oder Windows Terminal:
 
 ```powershell
-npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
+irm https://github.com/davidhbg/harnes/releases/latest/download/install.ps1 | iex
 ```
+
+Der Installer prüft Node.js, installiert Harnes mit Fortschrittsanzeige und sagt dir am Ende, wie es weitergeht.
+Ohne Installer geht es auch direkt: `npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz`
 
 ### Linux
 
@@ -49,15 +52,17 @@ nvm install 22
 Dann Harnes:
 
 ```bash
-npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
+curl -fsSL https://github.com/davidhbg/harnes/releases/latest/download/install.sh | bash
 ```
+
+Der Installer prüft Node.js und die Bauwerkzeuge und sagt dir genau, was fehlt.
 
 Andere Systeme: Fedora `sudo dnf install -y gcc-c++ make python3`, Arch `sudo pacman -S --needed base-devel python`.
 
 ### macOS
 
 ```bash
-npm install -g https://github.com/davidhbg/harnes/releases/latest/download/harnes.tgz
+curl -fsSL https://github.com/davidhbg/harnes/releases/latest/download/install.sh | bash
 ```
 
 ### Starten
@@ -67,8 +72,9 @@ harnes
 ```
 
 Beim ersten Start führt dich eine **Einrichtung** Schritt für Schritt durch alles: dein Name, womit du
-arbeitest (Claude-Abo, Codex, API-Schlüssel, lokale Modelle) und das Verbinden jedes Zugangs. Danach
-startest du direkt in deinem Team.
+arbeitest (Claude-Abo, Codex, API-Schlüssel, lokale Modelle), das Verbinden jedes Zugangs – oder später –
+und das Gedächtnis für dein Team (neu anlegen oder einen vorhandenen Obsidian-Vault verbinden). Danach
+startest du direkt in deinem Team. Geht später etwas nicht: Startseite › Einstellungen › Zugänge prüfen und reparieren.
 
 > **Aktualisieren** ist derselbe Befehl wie Installieren. Ohne Internet geht es auch mit der Datei aus den
 > [Releases](https://github.com/davidhbg/harnes/releases): `npm install -g harnes.tgz`.

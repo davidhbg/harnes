@@ -26,7 +26,7 @@ import { createUiState, type UiAction } from './ui/state.js';
 import { pauseInput, resumeInput, terminalInput } from './ui/wininput.js';
 import { errText, safeName } from './util.js';
 
-const VERSION = '0.1.3';
+const VERSION = '0.1.4';
 
 const HELP = `Harnes ${VERSION} – KI-Sitzungen als Team
 
@@ -285,8 +285,10 @@ async function main(): Promise<void> {
       if (action.type === 'einrichtung') {
         phase = 'setup';
         if (config.eingerichtet) {
+          // Prüfen und reparieren: alle Zugänge neu prüfen, gleich bei der Auswahl beginnen
           setup.step = 'auswahl';
           setup.chosen = [...selected];
+          recheck = rows.map((r) => r.id);
         }
         continue;
       }
@@ -341,8 +343,8 @@ async function main(): Promise<void> {
       selected.clear();
       for (const id of action.rows) selected.add(id);
       saveSelection([...selected]);
-      if (action.nameChanged) {
-        // neuer Name: Projekt mit dem neuen Namen neu laden, die gewählten Sitzungen gleich mit öffnen
+      if (action.nameChanged || action.vaultChanged) {
+        // neuer Name oder neues Gedächtnis: Projekt neu laden, die gewählten Sitzungen gleich mit öffnen
         carryMit = action.rows.map((id) => rows.find((r) => r.id === id)!).map((r) => `${r.kind}:${r.name}`);
         nextCwd = args.cwd;
         reloadTo = 'team';
@@ -435,6 +437,7 @@ async function main(): Promise<void> {
       phase = 'setup';
       setup.step = 'auswahl';
       setup.chosen = [...selected];
+      recheck = rows.map((r) => r.id);
       continue;
     }
     if (action.type === 'konten') {

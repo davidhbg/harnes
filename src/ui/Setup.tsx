@@ -1,8 +1,12 @@
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { Box, Text, useAnimation, useApp, useInput, usePaste, useWindowSize } from 'ink';
 import { useEffect, useReducer, useState } from 'react';
 import type { AuthInfo } from '../auth.js';
 import { keyEnvFor, saveKey, updateConfig, type Config } from '../config.js';
-import { errText, wrapText } from '../util.js';
+import { errText, truncate, wrapText } from '../util.js';
+import { connectVaultRoot } from '../vault-connect.js';
 import { brailleImage, galaxy, muse } from './art.js';
 import { ownImages } from './eigene-bilder.js';
 import { mouseEvents, useMouse } from './mouse.js';
@@ -12,12 +16,12 @@ import { T, bigLogo, gradientSpans, logoLine, type Line, type Span } from './the
 
 /**
  * Einrichtung beim ersten Start: ein Schritt nach dem anderen statt aller Anbieter auf einmal.
- * 1. Willkommen  2. Womit arbeitest du?  3. je Zugang verbinden  4. Fertig.
+ * 1. Willkommen  2. Womit arbeitest du?  3. je Zugang verbinden (oder später)  4. Gedächtnis  5. Fertig.
  * Danach geht es bei jedem Start direkt in die Chats.
  */
 
 export interface SetupState {
-  step: 'willkommen' | 'auswahl' | 'verbinden' | 'fertig';
+  step: 'willkommen' | 'auswahl' | 'verbinden' | 'gedaechtnis' | 'fertig';
   /** gewählte Zugänge (IDs aus startRows) */
   chosen: string[];
   /** welcher Zugang gerade verbunden wird */
@@ -26,9 +30,20 @@ export interface SetupState {
   cursor: number;
   /** eigener Name (erster Schritt); undefined = noch nicht angefasst */
   name?: string;
+  /** Gedächtnis-Schritt: gewählte Möglichkeit (0 neu, 1 vorhandener Vault, 2 später) */
+  vaultChoice?: number;
+  /** eingetippter Ordner für einen vorhandenen Vault */
+  vaultPath?: string;
+  /** beim ersten Mal: der Gedächtnis-Schritt wurde schon erledigt */
+  vaultDone?: boolean;
+  /** Gedächtnis wurde umgestellt: Projekt muss neu geladen werden */
+  vaultChanged?: boolean;
 }
 
-export type SetupAction = { type: 'login'; row: string } | { type: 'done'; rows: string[]; nameChanged?: boolean } | { type: 'quit' };
+export type SetupAction = { type: 'login'; row: string } | { type: 'done'; rows: string[]; nameChanged?: boolean; vaultChanged?: boolean } | { type: 'quit' };
+
+/** Vorschlag für ein neues Gedächtnis: sichtbarer Ordner im Benutzerordner (für Obsidian gut zu finden) */
+export const NEW_VAULT_DIR = () => join(homedir(), 'Harnes-Gedächtnis');
 
 export function createSetupState(): SetupState {
   return { step: 'willkommen', chosen: ['claude'], idx: 0, cursor: 0 };
@@ -128,18 +143,40 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       if (!state.chosen.length) return setNotice('Wähle mindestens einen Zugang (Leertaste).');
       return go('verbinden', 0);
     }
-    if (state.step === 'verbinden') return state.idx + 1 < chosenRows.length ? go('verbinden', state.idx + 1) : go('fertig');
+    if (state.step === 'verbinden') return state.idx + 1 < chosenRows.length ? go('verbinden', state.idx + 1) : go(config.eingerichtet && state.vaultDone !== false ? 'fertig' : 'gedaechtnis');
+    if (state.step === 'gedaechtnis') return chooseVault();
     const ready = chosenRows.filter((r) => st(r).state === 'ok').map((r) => r.id);
-    doAction({ type: 'done', rows: ready, nameChanged });
+    doAction({ type: 'done', rows: ready, nameChanged, vaultChanged: state.vaultChanged });
   };
   const back = () => {
     if (state.step === 'auswahl') return go('willkommen');
     if (state.step === 'verbinden') return state.idx > 0 ? go('verbinden', state.idx - 1) : go('auswahl');
-    if (state.step === 'fertig') return go('verbinden', Math.max(0, chosenRows.length - 1));
+    if (state.step === 'gedaechtnis') return go('verbinden', Math.max(0, chosenRows.length - 1));
+    if (state.step === 'fertig') return config.eingerichtet && state.vaultDone !== false ? go('verbinden', Math.max(0, chosenRows.length - 1)) : go('gedaechtnis');
   };
   const toggle = (id: string) => {
     state.chosen = state.chosen.includes(id) ? state.chosen.filter((x) => x !== id) : [...state.chosen, id];
     rerender();
+  };
+
+  /** Gedächtnis festlegen: neu anlegen, vorhandenen Vault verbinden oder später */
+  const chooseVault = () => {
+    const c = state.vaultChoice ?? 0;
+    try {
+      if (c === 0) {
+        config.vaultRoot = connectVaultRoot(NEW_VAULT_DIR());
+        state.vaultChanged = true;
+      } else if (c === 1) {
+        const p = (state.vaultPath ?? '').trim();
+        if (!p) return setNotice('Ordner deines Obsidian-Vaults eintippen oder einfügen, dann Enter.');
+        config.vaultRoot = connectVaultRoot(p);
+        state.vaultChanged = true;
+      }
+      state.vaultDone = true;
+      go('fertig');
+    } catch (e) {
+      setNotice(errText(e));
+    }
   };
 
   /** Enter im Verbinden-Schritt: anmelden, Schlüssel speichern oder weiter */
@@ -162,6 +199,10 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
 
   usePaste((text) => {
     if (current?.login === 'key') setKeyValue((v) => v + text.replace(/\s+/g, ''));
+    if (state.step === 'gedaechtnis' && state.vaultChoice === 1) {
+      state.vaultPath = (state.vaultPath ?? '') + text.replace(/[\r\n]+/g, '').replace(/^"|"$/g, '');
+      rerender();
+    }
   });
 
   // Klickbare Stellen: Zeile -> Aktion (wird beim Zeichnen gefüllt)
@@ -192,6 +233,20 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       if (ch === 'r' && current) return check(current, true);
       return;
     }
+    if (state.step === 'gedaechtnis') {
+      const c = state.vaultChoice ?? 0;
+      if (key.upArrow) state.vaultChoice = (c + 2) % 3;
+      else if (key.downArrow || key.tab) state.vaultChoice = (c + 1) % 3;
+      else if (key.return) return next();
+      else if (c === 1) {
+        // Ordner tippen
+        const cur = state.vaultPath ?? '';
+        if (key.backspace || key.delete) state.vaultPath = cur.slice(0, -1);
+        else if (input && !key.ctrl && !key.meta) state.vaultPath = cur + input.replace(/[\r\n]/g, '');
+      }
+      setNotice('');
+      return rerender();
+    }
     if (key.return) return next();
     if (state.step === 'willkommen') {
       // Name tippen (Q beendet nicht mehr, sonst ließe sich kein Q schreiben; Strg+C beendet)
@@ -208,7 +263,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
   const LC = C - sideW;
   const W = Math.min(76, LC - 4);
   const inner = W - 4;
-  const steps = ['willkommen', 'auswahl', 'verbinden', 'fertig'] as const;
+  const steps = ['willkommen', 'auswahl', 'verbinden', 'gedaechtnis', 'fertig'] as const;
   const stepNo = steps.indexOf(state.step);
   const dots: Span[] = [];
   steps.forEach((s, i) => {
@@ -221,6 +276,10 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
   let title = '';
   let sub = '';
   const body: Line[] = [];
+  /** Erklärtext mit Zeilenumbruch statt abgeschnitten */
+  const para = (text: string, indent = '') => {
+    for (const l of wrapText(text, Math.max(20, inner - 2 - indent.length))) body.push([d(indent + l)]);
+  };
   /** Zeile im Kasten, die bei einem Klick etwas tut */
   const bodyHits: Record<number, () => void> = {};
   let hint: Span[] = [];
@@ -229,11 +288,12 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       title = 'Willkommen bei Harnes';
       sub = 'Mehrere KI-Sitzungen arbeiten als ein Team – du führst es aus einem Fenster.';
       body.push(
-        [d('In drei kurzen Schritten verbindest du deine Zugänge:')],
+        [d('In ein paar kurzen Schritten ist alles bereit:')],
         [],
         [k('1  '), { text: 'Auswählen, womit du arbeitest', color: T.text }],
-        [k('2  '), { text: 'Jeden Zugang einmal verbinden', color: T.text }],
-        [k('3  '), { text: 'Loslegen – ab dann startest du direkt in den Chats', color: T.text }],
+        [k('2  '), { text: 'Jeden Zugang verbinden – oder später', color: T.text }],
+        [k('3  '), { text: 'Gedächtnis für dein Team anlegen', color: T.text }],
+        [k('4  '), { text: 'Loslegen – ab dann startest du direkt in den Chats', color: T.text }],
         [],
         [{ text: 'Wie heißt du? ', color: T.muted }, { text: state.name ?? config.benutzer, color: T.text, bold: true }, { text: ' ', bg: T.text }],
         [d('So nennen dich die Sitzungen im Team-Chat. Tippen ändert den Namen.')],
@@ -242,7 +302,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       break;
     case 'auswahl':
       title = 'Womit willst du arbeiten?';
-      sub = 'Wähle alles, was du hast. Später kannst du jederzeit mehr hinzufügen (Esc im Chat).';
+      sub = 'Wähle alles, was du hast. Verbinden kannst du jeden Zugang auch später (Startseite › Einstellungen).';
       choices.forEach((r, i) => {
         const on = state.chosen.includes(r.id);
         const at = i === state.cursor;
@@ -267,14 +327,15 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       const m = MARK[s.state];
       title = r.label;
       sub = `Zugang ${state.idx + 1} von ${chosenRows.length} · ${ABOUT[r.id] ?? ''}`;
-      body.push([d(HOW[r.login])], [], [{ text: `${m.ch} `, color: m.color, bold: true }, { text: s.text, color: s.state === 'ok' ? T.ok : T.text }], []);
+      para(HOW[r.login]);
+      body.push([], [{ text: `${m.ch} `, color: m.color, bold: true }, { text: s.text, color: s.state === 'ok' ? T.ok : T.text }], []);
       if (s.state === 'ok') {
         if (r.login === 'claude' || r.login === 'codex') {
           // Die Anmeldung gehört dem Programm selbst (Claude Code bzw. Codex), Harnes prüft sie nur
           const prog = r.login === 'claude' ? 'Claude Code' : 'Codex';
           const out = r.login === 'claude' ? 'claude auth logout' : 'codex logout';
-          body.push([d(`${prog} ist auf diesem Rechner schon angemeldet – Harnes nutzt diese Anmeldung mit.`)]);
-          body.push([d('Anderes Konto? In einem Terminal '), { text: out, color: T.text }, d(' eingeben und hier neu anmelden.')], []);
+          para(`${prog} ist auf diesem Rechner schon angemeldet – Harnes nutzt diese Anmeldung mit.`);
+          body.push([d('Anderes Konto: '), { text: out, color: T.text }, d(', dann hier neu anmelden.')], []);
         }
         bodyHits[body.length] = next;
         body.push([k('[ Weiter ]'), d('  verbunden')]);
@@ -288,7 +349,44 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
         bodyHits[body.length] = () => check(r, false);
         body.push([k('[ Erneut suchen ]')]);
       }
-      hint = [k('Enter'), d(s.state === 'ok' ? ' weiter  ' : r.login === 'key' ? ' speichern  ' : ' verbinden  '), k('S'), d(' überspringen  '), k('R'), d(' neu prüfen  '), k('Esc'), d(' zurück')];
+      if (s.state !== 'ok') {
+        // Später verbinden: deutlich sichtbar statt nur als Taste
+        body.push([]);
+        bodyHits[body.length] = next;
+        body.push([k('[ Später verbinden ]')]);
+        para('Geht jederzeit: Startseite › Einstellungen › Zugänge prüfen und reparieren.', '  ');
+      }
+      hint = [k('Enter'), d(s.state === 'ok' ? ' weiter  ' : r.login === 'key' ? ' speichern  ' : ' verbinden  '), k('S'), d(' später  '), k('R'), d(' neu prüfen  '), k('Esc'), d(' zurück')];
+      break;
+    }
+    case 'gedaechtnis': {
+      const c = state.vaultChoice ?? 0;
+      title = 'Gedächtnis für dein Team';
+      sub = 'Hier landet alles, was dein Team weiß: Chats, Absprachen, Aufgaben, Notizen. Jede Sitzung kann nachlesen – empfohlen.';
+      const opt = (i: number, label: string, hint2: string) => {
+        bodyHits[body.length] = () => {
+          state.vaultChoice = i;
+          if (i !== 1) next();
+          else rerender();
+        };
+        body.push([
+          { text: c === i ? '❯ ' : '  ', color: T.pink, bold: true },
+          { text: c === i ? '◉ ' : '○ ', color: c === i ? T.violet : T.faint, bold: true },
+          { text: label, color: c === i ? T.text : T.muted, bold: c === i },
+        ]);
+        para(hint2, '     ');
+      };
+      opt(0, 'Neues Gedächtnis anlegen  (empfohlen)', truncate(NEW_VAULT_DIR(), inner - 6));
+      opt(1, 'Vorhandenen Obsidian-Vault verbinden', 'Harnes legt darin einen Ordner je Projekt an und überschreibt nichts');
+      if (c === 1) {
+        const p = state.vaultPath ?? '';
+        body.push([d('     Ordner  '), { text: truncate(p, inner - 18) || ' ', color: T.text, bg: T.night }, { text: ' ', bg: T.violet }]);
+        if (p.trim() && existsSync(join(p.trim(), '.obsidian'))) body.push([{ text: '     ✓ Obsidian-Vault erkannt', color: T.ok }]);
+      }
+      opt(2, 'Später', 'Bis dahin im Harnes-Ordner. Jederzeit: Startseite › Einstellungen › Vault verbinden.');
+      body.push([]);
+      para('Ansehen kannst du das Gedächtnis mit Obsidian (kostenlos, obsidian.md).');
+      hint = [k('↑↓'), d(' wählen  '), k('Enter'), d(c === 1 ? ' verbinden  ' : ' weiter  '), ...(c === 1 ? [k('Strg+V'), d(' Pfad einfügen  ')] : []), k('Esc'), d(' zurück')];
       break;
     }
     case 'fertig': {
@@ -298,8 +396,9 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       for (const r of chosenRows) {
         const s = st(r);
         const m = MARK[s.state];
-        body.push([{ text: `${m.ch} `, color: m.color, bold: true }, { text: r.label, color: s.state === 'ok' ? T.text : T.faint }, d(s.state === 'ok' ? '' : `  ${s.text}`)]);
+        body.push([{ text: `${m.ch} `, color: m.color, bold: true }, { text: r.label, color: s.state === 'ok' ? T.text : T.faint }, d(s.state === 'ok' ? '' : `  ${s.text} – später verbinden`)]);
       }
+      body.push([], [{ text: '◇ ', color: T.violet, bold: true }, { text: 'Gedächtnis  ', color: T.text }, d(truncate(config.vaultRoot, inner - 14))]);
       body.push([]);
       bodyHits[body.length] = next;
       body.push([k('[ Zu den Chats ]')]);

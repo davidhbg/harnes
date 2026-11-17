@@ -168,7 +168,7 @@ export function Home({ hub, config, project, boot, needsSetup, startView, onActi
     case 'einstellungen':
       title = 'Einstellungen';
       items = [
-        { icon: '›', label: 'Zugänge verbinden', hint: 'Abo, API, lokal', run: () => doAction({ type: 'einrichtung' }) },
+        { icon: '›', label: 'Zugänge prüfen und reparieren', hint: 'wenn etwas nicht geht', run: () => doAction({ type: 'einrichtung' }) },
         { icon: '›', label: 'Anmeldungen und Schlüssel', hint: 'alles auf einen Blick', run: () => doAction({ type: 'konten' }) },
         { icon: '@', label: 'MCP-Server', hint: `${Object.keys(mcp).length} eingerichtet`, run: () => go('mcp') },
         {
