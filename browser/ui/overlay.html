@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: transparent;
+        overflow: hidden;
+        font: 500 14px/1.45 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        color: #e4dff0;
+      }
+      #buddy {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 34px;
+        height: 34px;
+        opacity: 0;
+        transform: translate(-100px, -100px);
+        transition: opacity 0.3s;
+        filter: drop-shadow(0 3px 10px rgba(20, 10, 40, 0.7)) drop-shadow(0 0 14px rgba(227, 180, 143, 0.55));
+        will-change: transform;
+      }
+      #buddy.on {
+        opacity: 1;
+      }
+      #halo {
+        position: fixed;
+        width: 64px;
+        height: 64px;
+        margin: -32px 0 0 -32px;
+        border-radius: 50%;
+        border: 2px solid #e3b48f;
+        opacity: 0;
+      }
+      #halo.go {
+        animation: halo 1.4s ease-out 2;
+      }
+      @keyframes halo {
+        0% {
+          opacity: 0.9;
+          transform: scale(0.3);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.6);
+        }
+      }
+      .card {
+        position: fixed;
+        max-width: 380px;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: rgba(21, 17, 38, 0.95);
+        border: 1px solid #5b4e96;
+        box-shadow: 0 12px 40px rgba(10, 5, 25, 0.6), 0 0 0 1px rgba(227, 180, 143, 0.08);
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+        transition: opacity 0.22s, transform 0.22s;
+        pointer-events: none;
+      }
+      .card.on {
+        opacity: 1;
+        transform: none;
+      }
+      #ask {
+        width: 380px;
+        pointer-events: auto;
+      }
+      #ask .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #a99bdc;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      #ask .head b {
+        color: #e3b48f;
+      }
+      #q {
+        width: 100%;
+        padding: 9px 12px;
+        border-radius: 10px;
+        border: 1px solid #3d3562;
+        background: #0e0b1c;
+        color: #e4dff0;
+        font: inherit;
+        outline: none;
+      }
+      #q:focus {
+        border-color: #8676c4;
+        box-shadow: 0 0 0 3px rgba(134, 118, 196, 0.2);
+      }
+      #ask .foot {
+        margin-top: 6px;
+        color: #625b80;
+        font-size: 12px;
+      }
+      #bubble .think {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #a99bdc;
+      }
+      .spin {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid #5b4e96;
+        border-top-color: #e3b48f;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="halo"></div>
+    <svg id="buddy" viewBox="0 0 28 28">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#F4E6C8" />
+          <stop offset=".5" stop-color="#C59BC0" />
+          <stop offset="1" stop-color="#8676C4" />
+        </linearGradient>
+      </defs>
+      <path d="M4 3 L24 12 L14 14.5 L10.5 25 Z" fill="url(#g)" stroke="#17122B" stroke-width="1.6" stroke-linejoin="round" />
+    </svg>
+    <div id="bubble" class="card"></div>
+    <div id="ask" class="card">
+      <div class="head"><b>◆</b> Was soll ich dir zeigen?</div>
+      <input id="q" placeholder="z. B. Wo stelle ich hier die Sprache um?" />
+      <div class="foot">Enter fragen · Esc abbrechen · Ich sehe deinen Bildschirm und zeige auf die Stellen.</div>
+    </div>
+    <script src="overlay.js"></script>
+  </body>
+</html>

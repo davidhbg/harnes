@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https: http: data:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>HarnesBrowser</title>
+    <link rel="stylesheet" href="../../node_modules/@xterm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header id="top">
+      <div class="logo"><span class="diamond">◆</span><span class="word">Harnes</span></div>
+      <div id="tabs"></div>
+      <button id="newtab" title="Neuer Tab (Strg+T)">+</button>
+      <div class="drag"></div>
+    </header>
+
+    <nav id="bar">
+      <button id="back" class="icon" title="Zurück (Alt+←)">‹</button>
+      <button id="forward" class="icon" title="Vor (Alt+→)">›</button>
+      <button id="reload" class="icon" title="Neu laden (Strg+R)">⟳</button>
+      <form id="addr">
+        <span id="lock">◇</span>
+        <input id="url" spellcheck="false" autocomplete="off" placeholder="Suchen oder Adresse eingeben" />
+        <span id="loading"></span>
+      </form>
+      <button id="ask" title="Zeige-Modus: Frage stellen, die KI zeigt auf die Stellen">
+        <span class="dot"></span>Zeig's mir <kbd>Strg+Alt+H</kbd>
+      </button>
+      <button id="speak" class="icon" title="Erklärungen vorlesen an/aus">♪</button>
+      <button id="toggleTerm" title="Team ein-/ausblenden (Strg+`)">Team</button>
+    </nav>
+
+    <main>
+      <section id="web">
+        <div id="web-empty"></div>
+      </section>
+      <div id="split" title="Breite ziehen"></div>
+      <aside id="side">
+        <div class="side-head">
+          <span class="diamond">◆</span> RemoteHarnes
+          <span id="term-state">startet …</span>
+          <button id="term-restart" title="RemoteHarnes neu starten">neu starten</button>
+        </div>
+        <div id="term"></div>
+      </aside>
+    </main>
+
+    <footer id="status">
+      <span id="activity"><span class="pulse"></span><span id="activity-text">Bereit</span></span>
+      <span id="hint">Strg+T neuer Tab · Strg+L Adresse · Strg+` Team · F12 Entwicklerwerkzeuge</span>
+    </footer>
+
+    <script src="../../node_modules/@xterm/xterm/lib/xterm.js"></script>
+    <script src="../../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

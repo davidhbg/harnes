@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.remoteharnes/
+.demo/
+docs/pitch/*.mp4
+begleiter/target/
+paket/
+begleiter/bin/
+docs/NACHT.md
