@@ -6,5 +6,7 @@ export default defineConfig({
     include: ['test/**/*.test.ts'],
     // fester Name des Menschen in allen Tests (sonst käme er vom Systemkonto)
     env: { HARNES_BENUTZER: 'David' },
+    // Die Oberflächen-Tests steuern echte Pseudo-Terminals; nacheinander laufen sie zuverlässig
+    fileParallelism: false,
   },
 });

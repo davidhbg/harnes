@@ -78,9 +78,10 @@ describe('Oberfläche im echten Terminal (ohne KI)', () => {
     // 7. Beenden
     await t.line('/quit');
     for (let i = 0; i < 150 && !t.exited; i++) await pause(100);
+    if (!t.exited) console.log(`--- Bildschirm beim Hängen ---\n${await t.screen()}`);
     expect(t.exited).toBe(true);
     expect(t.exitCode).toBe(0);
-  }, 40_000);
+  }, 60_000);
 
   it('Verlauf ist nach einem Neustart wieder da', async () => {
     const home = mkdtempSync(join(tmpdir(), 'rh-e2e-'));

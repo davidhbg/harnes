@@ -26,7 +26,7 @@ import { createUiState, type UiAction } from './ui/state.js';
 import { pauseInput, resumeInput, terminalInput } from './ui/wininput.js';
 import { errText, safeName } from './util.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 
 const HELP = `Harnes ${VERSION} – KI-Sitzungen als Team
 
@@ -51,6 +51,7 @@ Arten von Sitzungen: claude (Abo), claude-api, codex, deepseek, openrouter,
 ollama, lmstudio, test (ohne KI).
 
 Einstellungen: ${configPath()}
+Lizenz: kostenlos nutzbar, Code © davidhbg, alle Rechte vorbehalten (siehe LICENSE)
 `;
 
 interface Args {

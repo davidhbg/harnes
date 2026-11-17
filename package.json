@@ -1,6 +1,6 @@
 {
   "name": "harnes",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dein KI-Team im Terminal: Claude, Codex, DeepSeek und lokale Modelle arbeiten als ein Team – Team-Chat, Aufgabenbrett, Obsidian-Gedächtnis und ein Begleiter mit Stimme.",
   "type": "module",
   "private": true,
@@ -51,7 +51,8 @@
     "browser",
     "begleiter/bin",
     "scripts/nach-installation.cjs",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "repository": {
     "type": "git",
@@ -72,5 +73,7 @@
     "terminal",
     "agents",
     "mcp"
-  ]
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "davidhbg (https://github.com/davidhbg)"
 }

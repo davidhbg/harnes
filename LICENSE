@@ -1,0 +1,43 @@
+Harnes – Lizenz
+================
+
+Copyright (c) 2026 davidhbg (https://github.com/davidhbg). Alle Rechte vorbehalten.
+
+Harnes (Programm, Quellcode, Begleiter, Bilder und Texte, zusammen „die Software“) gehört dem
+Urheber. Diese Lizenz erlaubt dir, die Software zu nutzen – mehr nicht.
+
+1. Erlaubt
+   Du darfst die Software kostenlos herunterladen, installieren und für eigene Zwecke nutzen,
+   privat und beruflich. Du darfst den Quellcode lesen, um zu verstehen, was die Software tut.
+
+2. Nicht erlaubt (ohne vorherige schriftliche Erlaubnis des Urhebers)
+   a) den Quellcode oder Teile davon zu kopieren, zu verändern oder in andere Programme,
+      Projekte oder Produkte zu übernehmen,
+   b) auf Grundlage der Software eigene Werke zu erstellen (Bearbeitungen, Ableger, Nachbauten),
+   c) die Software oder veränderte Fassungen weiterzugeben, zu verkaufen, zu vermieten,
+      unterzulizenzieren oder anderweitig zu veröffentlichen,
+   d) die Software als eigenes Werk auszugeben oder Hinweise auf den Urheber zu entfernen,
+   e) den Quellcode zum Trainieren von KI-Modellen zu verwenden.
+
+   Erlaubt bleibt das Ansehen und das Forken auf GitHub im Rahmen der Nutzungsbedingungen von
+   GitHub; daraus entstehen keine weiteren Rechte.
+
+3. Keine Gewähr
+   Die Software wird so bereitgestellt, wie sie ist, ohne Gewähr für Fehlerfreiheit oder Eignung
+   für einen bestimmten Zweck. Soweit gesetzlich zulässig, haftet der Urheber nicht für Schäden
+   aus der Nutzung. Für Kosten bei KI-Anbietern (z. B. API-Guthaben) ist allein der Nutzer
+   verantwortlich.
+
+4. Ende der Lizenz
+   Wer gegen diese Bedingungen verstößt, verliert das Recht zur Nutzung.
+
+Für eine Erlaubnis, die darüber hinausgeht (z. B. Code verwenden, Zusammenarbeit), schreib bitte
+über GitHub: https://github.com/davidhbg
+
+-------------------------------------------------------------------------------------------------
+
+English summary (the German text above is binding): Copyright (c) 2026 davidhbg. All rights
+reserved. You may download, install and use Harnes free of charge, privately and commercially,
+and read the source to understand it. You may not copy, modify, reuse, redistribute, sell,
+sublicense or create derivative works from the source code, or use it to train AI models,
+without prior written permission. Provided "as is", without warranty.

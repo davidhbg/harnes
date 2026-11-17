@@ -12,6 +12,7 @@
   <img alt="Node 22+" src="https://img.shields.io/badge/Node-22%2B-c4a7e7?style=flat-square">
   <img alt="Tests" src="https://img.shields.io/badge/Tests-56%20gr%C3%BCn-6fcf97?style=flat-square">
   <img alt="Sprache" src="https://img.shields.io/badge/Oberfl%C3%A4che-Deutsch-f0b98d?style=flat-square">
+  <img alt="Lizenz" src="https://img.shields.io/badge/Lizenz-frei%20nutzbar%2C%20alle%20Rechte%20vorbehalten-9a93b8?style=flat-square">
 </p>
 
 ---
@@ -79,11 +80,14 @@ Ein kleiner leuchtender Zeiger lebt neben deiner Maus – überall auf dem Bilds
 
 ## Sicherheit
 
-Harnes ist so gebaut, dass Schlüssel und Zugänge bei dir bleiben:
+Harnes ist so gebaut, dass Schlüssel und Zugänge bei dir bleiben. Es gibt keinen Harnes-Server und
+keine Cloud: Jede Installation ist für sich, jeder Nutzer hat nur seine eigenen Anmeldungen und
+Schlüssel – niemand kann über Harnes an die eines anderen kommen.
 
-- **API-Schlüssel** liegen nur auf deinem Rechner (`~/.remoteharnes/keys.json` oder Umgebungsvariablen) –
-  nie im Vault, nie in Protokollen, in der Oberfläche nur verdeckt. Ein Schlüssel geht ausschließlich an den
-  Anbieter, zu dem er gehört.
+- **API-Schlüssel** liegen nur auf deinem Rechner, in deinem eigenen Benutzerordner
+  (`~/.remoteharnes/keys.json`, für andere Windows-Konten nicht lesbar) oder in Umgebungsvariablen –
+  nie im Vault, nie in Protokollen, nie im Paket, in der Oberfläche nur verdeckt. Ein Schlüssel geht
+  ausschließlich an den Anbieter, zu dem er gehört.
 - **Gestartete Programme** bekommen nur die Schlüssel, die sie selbst brauchen – nicht die der anderen Anbieter.
 - **Claude-Abo:** Harnes startet nur das echte `claude`-Programm. Anmeldedaten von Claude werden nie
   gelesen, kopiert oder weitergegeben.
@@ -174,3 +178,11 @@ src/ui/           Oberfläche (Ink)
 begleiter/        Begleiter in Rust: Zeiger, Sprache, Stimme
 browser/          HarnesBrowser (Electron, Versuch)
 ```
+
+---
+
+## Lizenz
+
+Harnes ist **kostenlos nutzbar** – privat und beruflich. Der Code gehört dem Urheber und darf ohne
+schriftliche Erlaubnis nicht kopiert, verändert, in andere Projekte übernommen oder weitergegeben
+werden. Alle Details in der [LICENSE](LICENSE).

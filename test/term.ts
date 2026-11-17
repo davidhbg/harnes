@@ -41,6 +41,12 @@ export class TermSession {
   async line(text: string): Promise<void> {
     this.proc.write(text);
     await new Promise((r) => setTimeout(r, 150));
+    // Enter erst, wenn der Text wirklich angekommen ist (unter Last kommt er sonst nach dem Enter an)
+    const tail = text.slice(-12);
+    for (let i = 0; i < 30; i++) {
+      if ((await this.screen()).includes(tail)) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
     this.proc.write('\r');
   }
 
