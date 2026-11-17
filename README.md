@@ -10,7 +10,7 @@
 <p align="center">
   <img alt="Windows · Linux · macOS" src="https://img.shields.io/badge/Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-8b7cf6?style=flat-square">
   <img alt="Node 22+" src="https://img.shields.io/badge/Node-22%2B-c4a7e7?style=flat-square">
-  <img alt="Tests" src="https://img.shields.io/badge/Tests-57%20gr%C3%BCn-6fcf97?style=flat-square">
+  <a href="https://github.com/davidhbg/harnes/actions/workflows/test.yml"><img alt="Tests auf Windows, Linux und macOS" src="https://github.com/davidhbg/harnes/actions/workflows/test.yml/badge.svg"></a>
   <img alt="Sprache" src="https://img.shields.io/badge/Oberfl%C3%A4che-Deutsch-f0b98d?style=flat-square">
   <img alt="Lizenz" src="https://img.shields.io/badge/Lizenz-frei%20nutzbar%2C%20alle%20Rechte%20vorbehalten-9a93b8?style=flat-square">
 </p>
