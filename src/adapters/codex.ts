@@ -7,6 +7,7 @@ import { errText, truncate } from '../util.js';
 import type { Adapter, AdapterContext } from './adapter.js';
 import { cleanEnv, findOnPath, openInBrowser } from './common.js';
 import { allMcp } from '../config.js';
+import { keepCodexCurrent } from '../codex-update.js';
 
 type Json = Record<string, unknown>;
 
@@ -55,6 +56,8 @@ export class CodexAdapter implements Adapter {
 
   async start(): Promise<void> {
     const { ctx } = this;
+    // Codex aktuell halten (höchstens einmal am Tag, still im Hintergrund)
+    void keepCodexCurrent(ctx.config, (t) => ctx.notice(t));
     const { command, prefix } = findCodex(ctx.config.codex.befehl);
     const mcpEnv = `{REMOTEHARNES_URL=${JSON.stringify(ctx.hubUrl)},REMOTEHARNES_TOKEN=${JSON.stringify(ctx.token)}}`;
     const args = [
@@ -92,6 +95,12 @@ export class CodexAdapter implements Adapter {
         this.seenErrors.add(key);
         if (this.seenErrors.size > 200) this.seenErrors.clear();
         ctx.log('fehler', truncate(key, 300));
+        // Veraltetes Codex versteht die aktuelle Modellliste von OpenAI nicht mehr
+        if (/failed to refresh available models/i.test(key) && !this.toldOutdated) {
+          this.toldOutdated = true;
+          ctx.notice(`${ctx.name}: Dieses Codex ist zu alt für die aktuelle Modellliste von OpenAI – manche Modelle fehlen oder gehen nicht.`);
+          void keepCodexCurrent(ctx.config, (t) => ctx.notice(t), true);
+        }
       }
     });
     createInterface({ input: this.proc.stdout }).on('line', (line) => this.onLine(line));
@@ -126,9 +135,24 @@ export class CodexAdapter implements Adapter {
     ctx.status('fehler', hint);
   }
 
+  /** Standardmodell laut „model/list“ von Codex, sonst null (dann entscheidet Codex selbst) */
+  private async defaultModel(): Promise<string | null> {
+    try {
+      const res = await this.request('model/list', {});
+      const list = ((res.data ?? []) as Json[]).filter((m) => !m.hidden);
+      const def = list.find((m) => m.isDefault) ?? list[0];
+      return def ? String(def.model ?? def.id) : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async startThread(): Promise<void> {
     const { ctx } = this;
-    const model = ctx.spec.model || ctx.config.codex.modell || null;
+    let model: string | null = ctx.spec.model || ctx.config.codex.modell || null;
+    // Ohne eigene Wahl: das aktuelle Standardmodell, das Codex selbst meldet. So bleibt Harnes aktuell,
+    // auch wenn in ~/.codex/config.toml noch ein Modell steht, das es nicht mehr gibt.
+    if (!model) model = await this.defaultModel();
     const res = await this.request('thread/start', {
       cwd: ctx.cwd,
       model,
@@ -137,6 +161,7 @@ export class CodexAdapter implements Adapter {
       developerInstructions: ctx.systemPrompt,
     });
     this.threadId = String((res.thread as Json).id);
+    if (res.model) this.startModel = String(res.model);
     ctx.log('info', `Bereit. Modell: ${String(res.model ?? model ?? 'Standard')}`);
     ctx.status('wartet');
   }
@@ -280,7 +305,7 @@ export class CodexAdapter implements Adapter {
             this.needLogin('Die Anmeldung bei Codex ist abgelaufen.');
             break;
           }
-          ctx.notice(`${ctx.name}: Runde fehlgeschlagen – ${truncate(m, 200)}`);
+          ctx.notice(`${ctx.name}: Runde fehlgeschlagen – ${friendlyCodexError(m, this.model || ctx.spec.model || ctx.config.codex.modell || this.startModel)}`);
         }
         this.lastText = '';
         if (this.turnOpen) {
@@ -385,6 +410,9 @@ export class CodexAdapter implements Adapter {
   }
 
   private model = '';
+  private toldOutdated = false;
+  /** Modell, das Codex beim Start tatsächlich gewählt hat */
+  private startModel = '';
 
   async command(line: string): Promise<string> {
     const cmd = line.trim().split(/\s+/)[0]!.toLowerCase();
@@ -422,4 +450,24 @@ export class CodexAdapter implements Adapter {
     }
     this.ctx.status('beendet');
   }
+}
+
+/** Fehlermeldung von Codex lesbar machen (oft steckt JSON mit der eigentlichen Meldung darin). */
+export function friendlyCodexError(raw: string, model?: string): string {
+  let m = raw;
+  let code = '';
+  if (raw.includes('{')) {
+    try {
+      const j = JSON.parse(raw.slice(raw.indexOf('{'))) as { error?: { message?: string; code?: string } };
+      if (j.error?.message) m = j.error.message;
+      code = j.error?.code ?? '';
+    } catch {
+      /* kein JSON */
+    }
+  }
+  if (code === 'model_not_found' || /model is not supported|model_not_found/i.test(m)) {
+    const name = model || /'([^']+)' model/.exec(m)?.[1] || '';
+    return `Das Modell ${name} geht mit diesem Konto nicht. Anderes Modell wählen (Esc › Modell wechseln) – oder Codex ist veraltet: npm i -g @openai/codex`.replace('Modell  geht', 'Modell geht');
+  }
+  return truncate(m, 200);
 }

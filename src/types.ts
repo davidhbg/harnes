@@ -19,6 +19,8 @@ export interface Message {
   mentions: string[];
   urgent?: boolean;
   system?: boolean;
+  /** Systemhinweis zu dieser Sitzung: steht auch in ihrem Privatchat */
+  about?: string;
 }
 
 export type TaskStatus = 'offen' | 'reserviert' | 'in_arbeit' | 'erledigt' | 'blockiert';

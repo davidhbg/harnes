@@ -31,7 +31,8 @@ export interface Config {
   signalton: boolean;
   claudeApi: { modell: string; apiKeyEnv: string; budgetUsd: number };
   claudeAbo: { befehl: string; modell: string; extraArgs: string[] };
-  codex: { befehl: string; modell: string; approvalPolicy: string; sandbox: string };
+  /** autoUpdate: Codex-CLI einmal am Tag prüfen und still aktualisieren (Standard: an) */
+  codex: { befehl: string; modell: string; approvalPolicy: string; sandbox: string; autoUpdate?: boolean };
   anbieter: Record<string, ProviderConfig>;
   /** Zusätzliche MCP-Server, die jede neue Sitzung bekommt (Name -> Befehl) */
   mcp?: Record<string, McpServer>;
@@ -65,7 +66,7 @@ export function defaultConfig(): Config {
     claudeAbo: { befehl: 'claude', modell: '', extraArgs: [] },
     codex: { befehl: '', modell: '', approvalPolicy: 'on-request', sandbox: 'workspace-write' },
     anbieter: {
-      deepseek: { baseUrl: 'https://api.deepseek.com/v1', apiKeyEnv: 'DEEPSEEK_API_KEY', modell: 'deepseek-chat' },
+      deepseek: { baseUrl: 'https://api.deepseek.com/v1', apiKeyEnv: 'DEEPSEEK_API_KEY', modell: 'deepseek-flash' },
       openrouter: { baseUrl: 'https://openrouter.ai/api/v1', apiKeyEnv: 'OPENROUTER_API_KEY', modell: 'deepseek/deepseek-chat' },
       ollama: { baseUrl: 'http://127.0.0.1:11434/v1', modell: 'gemma4' },
       lmstudio: { baseUrl: 'http://127.0.0.1:1234/v1', modell: '' },

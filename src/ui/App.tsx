@@ -5,6 +5,7 @@ import { fmtMoney, providerLabel } from '../balance.js';
 import { keyEnvFor, saveKey } from '../config.js';
 import type { Hub } from '../hub/hub.js';
 import { errText, truncate, width as textWidth, wrapText } from '../util.js';
+import { cachedModels, listModels } from '../models.js';
 import { agentScene, centered, dissolve, galaxy, overlay, scene, starfield, type SceneName } from './art.js';
 import { parseSpec, runCommand, suggest } from './commands.js';
 import { REVEAL_MS, chatLines, colorOf, helpLines, logLines, searchLines, statusDot, statusWord, taskLines, usageLines } from './lines.js';
@@ -31,7 +32,6 @@ const closeAsked = { name: '', at: 0 };
 const historyLoaded = new WeakSet<UiState>();
 
 /** Bekannte Modelle je Art; „Eigenes Modell“ geht immer. */
-const CLAUDE_MODELS = ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-2'];
 
 const spansW = (l: Span[]) => l.reduce((s, x) => s + textWidth(x.text), 0);
 /** Bild hinter einem Menü abdunkeln */
@@ -153,20 +153,40 @@ export function App({ hub, ui, project, onAction }: Props) {
       close();
     },
   });
-  const modelMenu = (n: string): Menu => {
+  /** Modell wählen: Liste kommt direkt vom Anbieter (beim ersten Öffnen kurz „wird geladen“) */
+  const modelMenu = (n: string, err?: string): Menu => {
     const a = hub.agents.get(n)!;
     const cfg = hub.opts.config;
-    let models: string[] = [];
-    if (a.spec.kind === 'claude-abo' || a.spec.kind === 'claude-api') models = CLAUDE_MODELS;
-    else if (a.spec.kind === 'openai') models = [cfg.anbieter[a.spec.provider ?? '']?.modell ?? ''].filter(Boolean);
-    const items: MenuItem[] = models.map((m) => ({ label: m, hint: m === a.spec.model ? 'aktuell' : '', run: () => (close(), report(hub.setModel(n, m))) }));
-    if (a.spec.kind !== 'openai') items.push({ label: 'Standard', hint: !a.spec.model ? 'aktuell' : '', run: () => (close(), report(hub.setModel(n, ''))) });
+    const title = `Modell für ${n}`;
+    // das Modell, das gerade wirklich benutzt wird
+    const current = a.spec.model || (a.spec.kind === 'openai' ? (cfg.anbieter[a.spec.provider ?? '']?.modell ?? '') : a.spec.kind === 'codex' ? cfg.codex.modell : '');
+    const choose = (m: string) => () => (close(), report(hub.setModel(n, m)));
+    const known = cachedModels(a.spec);
+    const items: MenuItem[] = [];
+    if (known) {
+      if (current && !known.some((m) => m.id === current)) items.push({ label: current, hint: 'aktuell', run: choose(current) });
+      for (const m of known) items.push({ label: m.id, hint: m.id === current ? `aktuell${m.hint ? ` · ${m.hint}` : ''}` : (m.hint ?? ''), run: choose(m.id) });
+      if (!known.length) items.push({ label: 'Keine Modelle gemeldet', hint: 'Eigenes Modell eingeben', run: () => undefined });
+    } else if (err) {
+      items.push({ label: 'Liste nicht abrufbar – erneut versuchen', hint: truncate(err, 60), run: () => open(modelMenu(n)) });
+    } else {
+      items.push({ label: 'Modelle werden geladen …', run: () => undefined });
+      listModels(cfg, a.spec)
+        .then(() => {
+          if (ui.menu?.title === title) ui.menu = modelMenu(n);
+        })
+        .catch((e) => {
+          if (ui.menu?.title === title) ui.menu = modelMenu(n, errText(e));
+        })
+        .finally(rerender);
+    }
+    if (a.spec.kind !== 'openai') items.push({ label: 'Standard', hint: !a.spec.model ? 'aktuell' : '', run: choose('') });
     items.push({
       label: 'Eigenes Modell eingeben …',
       run: () =>
         open({
           kind: 'eingabe',
-          title: `Modell für ${n}`,
+          title,
           label: 'Modellname',
           value: a.spec.model ?? '',
           back: () => modelMenu(n),
@@ -176,7 +196,8 @@ export function App({ hub, ui, project, onAction }: Props) {
           },
         }),
     });
-    return { kind: 'liste', title: `Modell für ${n}`, cursor: 0, back: mainMenu, items };
+    const at = items.findIndex((it) => it.hint?.startsWith('aktuell'));
+    return { kind: 'liste', title, cursor: Math.max(0, at), back: mainMenu, items };
   };
   const newSessionMenu = (): Menu => ({
     kind: 'liste',
@@ -830,8 +851,13 @@ export function App({ hub, ui, project, onAction }: Props) {
       return [pad, { text: '│ ', color: edge }, ...spans.map((s) => ({ ...s, bg })), { text: ' '.repeat(fill), bg }, { text: ' │', color: edge }];
     };
     const menuTop = 1;
+    let more = '';
     if (m.kind === 'liste') {
-      m.items.forEach((it, i) => {
+      const room = Math.max(3, contentH - 5);
+      const from = Math.max(0, Math.min(m.cursor - Math.floor(room / 2), m.items.length - room));
+      if (m.items.length > room) more = ` · ${m.cursor + 1}/${m.items.length}`;
+      m.items.slice(from, from + room).forEach((it, j) => {
+        const i = from + j;
         const at = i === m.cursor;
         const bg = at ? T.night : undefined;
         const numW = String(m.items.length).length;
@@ -844,7 +870,7 @@ export function App({ hub, ui, project, onAction }: Props) {
         ];
         const gap = Math.max(1, w - 4 - spansW(label) - textWidth(hint));
         box.push(row([...label, { text: ' '.repeat(gap) }, { text: hint, color: T.faint }], bg));
-        hits.push({ y: contentY + menuTop + 1 + i, x0: x0 + 1 + left, x1: x0 + 1 + left + w, run: () => runMenuItem(m, i) });
+        hits.push({ y: contentY + menuTop + 1 + j, x0: x0 + 1 + left, x1: x0 + 1 + left + w, run: () => runMenuItem(m, i) });
       });
     } else {
       const shown = m.secret && m.value ? `${m.value.slice(0, 6)}${'•'.repeat(Math.min(28, Math.max(0, m.value.length - 6)))}` : m.value;
@@ -852,7 +878,7 @@ export function App({ hub, ui, project, onAction }: Props) {
       box.push(row([{ text: '❯ ', color: T.pink, bold: true }, { text: truncate(shown, w - 8), color: T.text }, { text: ' ', bg: T.violet }]));
     }
     box.push([pad, { text: `╰${'─'.repeat(w - 2)}╯`, color: edge }]);
-    const help = m.kind === 'liste' ? '↑↓ wählen · Enter oder Klick · Esc zurück' : 'Enter bestätigen · Esc zurück';
+    const help = m.kind === 'liste' ? `↑↓ wählen · Enter oder Klick · Esc zurück${more}` : 'Enter bestätigen · Esc zurück';
     box.push([{ text: ' '.repeat(left + 2) }, { text: help, color: T.faint }]);
     const base = visible.length < contentH ? [...visible, ...Array.from({ length: contentH - visible.length }, () => [] as Line)] : visible;
     // Sterne im freien Raum hinter dem Menü

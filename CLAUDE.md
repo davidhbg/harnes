@@ -33,6 +33,11 @@ Bedienung und Überblick: `README.md`.
 - **Ordner vertrauen:** Claude Code fragt beim ersten Start in einem Ordner (im Benutzerordner bei *jedem* Start),
   vorausgewählt ist „No, exit“ – ein Enter beendet die Sitzung sofort. `checkTrust()` in `adapters/claude-abo.ts`
   erkennt die Frage auf dem Bildschirm und zeigt eine Freigabe-Karte.
+- **Modelle:** Listen kommen live vom Anbieter (`src/models.ts`: `/models` bzw. Codex `model/list`), nur Claude im Abo
+  hat eine feste Liste. Ein altes Codex (z. B. 0.130 aus der Codex-App) kennt die aktuellen OpenAI-Modelle nicht – dann
+  geht *kein* Modell („not supported when using Codex with a ChatGPT account“). `src/codex-update.ts` hält die Codex-CLI
+  aktuell (einmal am Tag, `codex.autoUpdate`). Ohne eigene Wahl nimmt Harnes das Standardmodell aus `model/list`, weil in
+  `~/.codex/config.toml` ein veraltetes Modell stehen kann.
 - **Adressen öffnen unter Windows** nie über `cmd /c start` (schneidet bei `&` ab), sondern `openInBrowser()`.
 - **`fetch` ignoriert eine eigene `host`-Kopfzeile**; für Tests der Host-Prüfung `node:http` nehmen.
 - **Anmelden (claude auth login, codex login)** läuft per `spawn` mit `stdio: 'inherit'` im selben Terminal,

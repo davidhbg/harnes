@@ -412,7 +412,7 @@ export class Hub extends EventEmitter {
       hasInbox: () => rec.inbox.length > 0 && !this.paused && !rec.budgetHit,
       fileHolder: (path) => this.tasks.holderOf(path),
       claimFile: (path) => this.tasks.touch(rec.name, path),
-      notice: (text) => this.system(text),
+      notice: (text) => this.system(text, rec.name),
     };
   }
 
@@ -477,9 +477,9 @@ export class Hub extends EventEmitter {
     this.changed();
   }
 
-  /** Hinweis des Systems im Teamchat (geht an keinen Agenten). */
-  system(text: string): void {
-    this.messages.push({ id: uid('s'), ts: Date.now(), from: 'system', to: 'team', text, mentions: [], system: true });
+  /** Hinweis des Systems im Teamchat (geht an keinen Agenten); mit `about` auch im Privatchat dieser Sitzung. */
+  system(text: string, about?: string): void {
+    this.messages.push({ id: uid('s'), ts: Date.now(), from: 'system', to: 'team', text, mentions: [], system: true, ...(about ? { about } : {}) });
     this.changed();
   }
 
@@ -743,7 +743,7 @@ export class Hub extends EventEmitter {
 
   /** Kanal einer Nachricht: 'team' oder 'agent:<name>' (bei Agent↔Agent beide). */
   channelsOf(m: Message): string[] {
-    if (m.to === 'team') return ['team'];
+    if (m.to === 'team') return m.system && m.about ? ['team', `agent:${m.about}`] : ['team'];
     const out: string[] = [];
     for (const p of [m.from, m.to]) if (p !== this.human && p !== 'system') out.push(`agent:${p}`);
     return out;
