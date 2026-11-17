@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createAdapter } from '../src/adapters/index.js';
+import { claudeStatus, logoutOf } from '../src/auth.js';
 import { defaultConfig } from '../src/config.js';
 import { Hub } from '../src/hub/hub.js';
 import { startServer } from '../src/hub/server.js';
@@ -46,7 +47,7 @@ async function setup() {
     await hub.shutdown();
     await server.close();
   };
-  return { hub, dir };
+  return { hub, dir, config };
 }
 
 const from = (hub: Hub, who: string, channel: string) =>
@@ -66,6 +67,23 @@ describe('Claude im Abo (mit Nachbau von Claude Code)', () => {
     hub.post(hub.human, 'team', 'Moin Team');
     await until(() => from(hub, 'claude', 'team').length === 1, 15_000);
     await until(() => rec.status === 'wartet', 5000);
+  }, 60_000);
+
+  it('Arbeitszeit zählt nur beim Arbeiten, Abmelden läuft über „claude auth logout“', async () => {
+    const { hub, config } = await setup();
+    const rec = await hub.addAgent({ kind: 'claude-abo', name: 'claude' });
+    await until(() => rec.status === 'wartet', 15_000);
+    expect(hub.workedMs()).toBe(0);
+    hub.post(hub.human, 'claude', 'Hallo');
+    await until(() => from(hub, 'claude', 'agent:claude').length === 1, 15_000);
+    await until(() => rec.status === 'wartet', 5000);
+    const worked = hub.workedMs();
+    expect(worked).toBeGreaterThan(0);
+    await new Promise((r) => setTimeout(r, 300));
+    expect(hub.workedMs()).toBe(worked);
+
+    expect((await claudeStatus(config)).state).toBe('ok');
+    expect(await logoutOf(config, 'claude')).toContain('abgemeldet');
   }, 60_000);
 
   it('Post, die während der Arbeit ankommt, wird am Rundenende direkt nachgereicht', async () => {

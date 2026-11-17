@@ -3,11 +3,11 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { Box, Text, useAnimation, useApp, useInput, usePaste, useWindowSize } from 'ink';
 import { useEffect, useReducer, useState } from 'react';
-import type { AuthInfo } from '../auth.js';
+import { logoutOf, type AuthInfo } from '../auth.js';
 import { keyEnvFor, saveKey, updateConfig, type Config } from '../config.js';
 import { errText, truncate, wrapText } from '../util.js';
 import { connectVaultRoot } from '../vault-connect.js';
-import { brailleImage, galaxy } from './art.js';
+import { brailleImage, galaxy, overlay, starfield } from './art.js';
 import { BILD_VERBINDEN } from './bilder.js';
 import { ownImages } from './eigene-bilder.js';
 import { mouseEvents, useMouse } from './mouse.js';
@@ -198,6 +198,17 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
     if (current.login === 'key') return setNotice('Bitte den Schlüssel einfügen (Strg+V oder Rechtsklick) und Enter drücken.');
   };
 
+  /** Abmelden über das offizielle Programm, danach neu prüfen */
+  const logout = () => {
+    const row = current;
+    if (!row || st(row).state !== 'ok' || (row.login !== 'claude' && row.login !== 'codex')) return;
+    setNotice('Melde ab …');
+    logoutOf(config, row.login)
+      .then(setNotice)
+      .catch((e) => setNotice(errText(e)))
+      .finally(() => check(row, true));
+  };
+
   usePaste((text) => {
     if (current?.login === 'key') setKeyValue((v) => v + text.replace(/\s+/g, ''));
     if (state.step === 'gedaechtnis' && state.vaultChoice === 1) {
@@ -231,6 +242,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       if (key.return) return connect();
       const ch = input.toLowerCase();
       if (ch === 's') return next();
+      if (ch === 'a') return logout();
       if (ch === 'r' && current) return check(current, true);
       return;
     }
@@ -334,12 +346,16 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
         if (r.login === 'claude' || r.login === 'codex') {
           // Die Anmeldung gehört dem Programm selbst (Claude Code bzw. Codex), Harnes prüft sie nur
           const prog = r.login === 'claude' ? 'Claude Code' : 'Codex';
-          const out = r.login === 'claude' ? 'claude auth logout' : 'codex logout';
           para(`${prog} ist auf diesem Rechner schon angemeldet – Harnes nutzt diese Anmeldung mit.`);
-          body.push([d('Anderes Konto: '), { text: out, color: T.text }, d(', dann hier neu anmelden.')], []);
+          body.push([]);
         }
         bodyHits[body.length] = next;
         body.push([k('[ Weiter ]'), d('  verbunden')]);
+        if (r.login === 'claude' || r.login === 'codex') {
+          const prog = r.login === 'claude' ? 'Claude Code' : 'Codex';
+          bodyHits[body.length] = logout;
+          body.push([k('[ Abmelden ]'), d(`  meldet ${prog} auf diesem Rechner ab, danach anderes Konto anmelden`)]);
+        }
       } else if (r.login === 'claude' || r.login === 'codex') {
         bodyHits[body.length] = connect;
         body.push([k('[ Jetzt anmelden ]'), d('  öffnet die Anmeldung im Browser')]);
@@ -357,7 +373,8 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
         body.push([k('[ Später verbinden ]')]);
         para('Geht jederzeit: Startseite › Einstellungen › Zugänge prüfen und reparieren.', '  ');
       }
-      hint = [k('Enter'), d(s.state === 'ok' ? ' weiter  ' : r.login === 'key' ? ' speichern  ' : ' verbinden  '), k('S'), d(' später  '), k('R'), d(' neu prüfen  '), k('Esc'), d(' zurück')];
+      const canLogout = s.state === 'ok' && (r.login === 'claude' || r.login === 'codex');
+      hint = [k('Enter'), d(s.state === 'ok' ? ' weiter  ' : r.login === 'key' ? ' speichern  ' : ' verbinden  '), ...(canLogout ? [k('A'), d(' abmelden  ')] : []), k('S'), d(' später  '), k('R'), d(' neu prüfen  '), k('Esc'), d(' zurück')];
       break;
     }
     case 'gedaechtnis': {
@@ -423,10 +440,29 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
   const artPad = (l: Line, w: number): Line => [{ text: ' '.repeat(Math.max(0, Math.floor((LC - w) / 2))) }, ...l];
   const lineW = (l: Line) => l.reduce((s, x) => s + [...x.text].length, 0);
 
-  // Klickzeilen auf den Bildschirm umrechnen: Kopf 1, Leerzeile, Bild, Kasten (Rand, Titel, Unterzeile, Leerzeile)
+  // Kasten als Zeilen zeichnen: so funkeln die Sterne rundherum und bleiben innen weg
   const subLines = wrapText(sub, W - 4);
-  const top = 2 + art.length + (art.length ? 1 : 0);
-  for (const [i, fn] of Object.entries(bodyHits)) hits[top + 3 + subLines.length + Number(i)] = fn;
+  const cw = W - 4;
+  const cardRows: Line[] = [[{ text: title, color: T.text, bold: true }], ...subLines.map((l) => [{ text: l, color: T.muted }]), []];
+  const bodyRow: number[] = [];
+  for (const l of body) {
+    bodyRow.push(cardRows.length);
+    cardRows.push(...wrapLine(l, cw));
+  }
+  const edge = T.line;
+  const cardLeft = Math.max(0, Math.floor((LC - W) / 2));
+  const indent: Span = { text: ' '.repeat(cardLeft) };
+  const card: Line[] = [
+    [indent, { text: `╭${'─'.repeat(W - 2)}╮`, color: edge }],
+    ...cardRows.map((l): Line => [indent, { text: '│ ', color: edge }, ...l, { text: ' '.repeat(Math.max(0, cw - lineW(l))) }, { text: ' │', color: edge }]),
+    [indent, { text: `╰${'─'.repeat(W - 2)}╯`, color: edge }],
+  ];
+  // linke Spalte: Leerzeile, Bild, Leerzeile, Kasten – alles vor einem Sternenhimmel
+  const cardTop = 1 + art.length + (art.length ? 1 : 0);
+  const sky = starfield(LC, R - 2, time, 0.06, 7);
+  const left = overlay(overlay(sky, art.map((l) => artPad(l, lineW(l))), 1, LC), card, cardTop, LC);
+  // Klickzeilen auf den Bildschirm umrechnen: Kopfzeile, dann Kasten (oberer Rand) und seine Zeilen
+  for (const [i, fn] of Object.entries(bodyHits)) hits[1 + cardTop + 1 + bodyRow[Number(i)]!] = fn;
 
   return (
     <Box flexDirection="column" width={C} height={R}>
@@ -436,19 +472,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       </Box>
       <Box flexDirection="row" height={R - 2}>
       <Box width={LC} flexDirection="column">
-      <Text> </Text>
-      {art.length > 0 && <Lines lines={art.map((l) => artPad(l, lineW(l)))} height={art.length} />}
-      {art.length > 0 && <Text> </Text>}
-      <Box width={LC} justifyContent="center">
-        <Box width={W} borderStyle="round" borderColor={T.line} paddingX={1} flexDirection="column">
-          <Row spans={[{ text: title, color: T.text, bold: true }]} />
-          {subLines.map((l, i) => (
-            <Row key={i} spans={[{ text: l, color: T.muted }]} />
-          ))}
-          <Text> </Text>
-          <Lines lines={body.map((l) => l)} height={body.length} />
-        </Box>
-      </Box>
+        <Lines lines={left} height={R - 2} />
       </Box>
       {sideW > 0 && (
         <Box width={sideW}>
@@ -462,4 +486,31 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
     </Box>
   );
   void inner;
+}
+
+/** Eine Zeile auf Breite umbrechen (an Leerzeichen, sonst hart), Farben bleiben erhalten. */
+function wrapLine(line: Line, width: number): Line[] {
+  const cells: { ch: string; span: Span }[] = [];
+  for (const span of line) for (const ch of [...span.text]) cells.push({ ch, span });
+  if (cells.length <= width) return [line];
+  const out: Line[] = [];
+  let rest = cells;
+  while (rest.length > width) {
+    let cut = rest.slice(0, width + 1).map((c) => c.ch).lastIndexOf(' ');
+    if (cut <= 0) cut = width;
+    out.push(toLine(rest.slice(0, cut)));
+    rest = rest.slice(cut).slice(rest[cut]?.ch === ' ' ? 1 : 0);
+  }
+  if (rest.length) out.push(toLine(rest));
+  return out;
+}
+
+function toLine(cells: { ch: string; span: Span }[]): Line {
+  const out: Line = [];
+  for (const c of cells) {
+    const last = out[out.length - 1];
+    if (last && (last as { src?: Span }).src === c.span) last.text += c.ch;
+    else out.push(Object.assign({ ...c.span, text: c.ch }, { src: c.span }));
+  }
+  return out.map(({ src: _src, ...rest }: Span & { src?: Span }) => rest);
 }

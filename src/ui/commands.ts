@@ -1,4 +1,5 @@
 import type { AgentSpec } from '../adapters/adapter.js';
+import { logoutOf } from '../auth.js';
 import { keyEnvFor, saveKey } from '../config.js';
 import type { Hub } from '../hub/hub.js';
 import type { AgentKind } from '../types.js';
@@ -43,6 +44,7 @@ export const COMMANDS: { name: string; args?: string; desc: string; kinds?: Agen
   { name: '/suche', args: '<text>', desc: 'Verlauf aller Chats durchsuchen' },
   { name: '/rolle', args: '[rolle]', desc: 'Rolle: tester, reviewer, planer, doku, sicherheit' },
   { name: '/einrichtung', desc: 'Zugänge verbinden (auch /setup, /config)' },
+  { name: '/abmelden', args: '[claude|codex]', desc: 'Claude Code oder Codex abmelden (auch /logout)' },
   { name: '/konten', desc: 'alle Anmeldungen und Schlüssel auf einen Blick' },
   { name: '/schluessel', args: '<anbieter> <schlüssel>', desc: 'API-Schlüssel speichern' },
   { name: '/pause', desc: 'Zustellung anhalten' },
@@ -436,9 +438,13 @@ Rufe zuerst bildschirm_foto auf (Bildschirm im Moment der Frage). Antworte kurz 
     case '/einrichtung':
     case '/setup':
     case '/config':
-    case '/logout':
       env.action({ type: 'einrichtung' });
       return;
+    case '/abmelden':
+    case '/logout': {
+      const which = (rest[0] ?? 'claude').toLowerCase().startsWith('codex') ? 'codex' : 'claude';
+      return logoutOf(hub.opts.config, which);
+    }
     case '/maus':
     case '/mouse': {
       const on = !['aus', 'off', '0', 'nein'].includes((rest[0] ?? '').toLowerCase());

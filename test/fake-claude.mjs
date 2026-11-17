@@ -12,6 +12,12 @@ const opt = (name) => {
   const i = argv.indexOf(name);
   return i >= 0 ? argv[i + 1] : undefined;
 };
+// „claude auth status“ / „claude auth logout“ wie das echte Programm
+if (argv[0] === 'auth') {
+  if (argv[1] === 'logout') console.log('Successfully logged out from your Anthropic account.');
+  else console.log(JSON.stringify({ loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'max' }));
+  process.exit(0);
+}
 const settings = JSON.parse(readFileSync(opt('--settings'), 'utf8'));
 
 function runHook(event, input, matcherValue) {

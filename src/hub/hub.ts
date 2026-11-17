@@ -46,6 +46,8 @@ export interface AgentRec {
   budgetHit: boolean;
   /** seit wann der aktuelle Status gilt */
   since: number;
+  /** abgeschlossene Arbeitszeit in ms (Status „arbeitet“), die laufende Runde kommt in workedMs() dazu */
+  workedMs: number;
   /** Ziele ('team' oder Teilnehmer), an die die Sitzung in dieser Runde schon per Werkzeug geschrieben hat */
   sentViaTool: Set<string>;
 }
@@ -221,6 +223,7 @@ export class Hub extends EventEmitter {
       budgetUsd: Math.max(0, this.opts.config.budget.usdProSitzung),
       budgetHit: false,
       since: Date.now(),
+      workedMs: 0,
       sentViaTool: new Set(),
     };
     this.agents.set(name, rec);
@@ -447,9 +450,20 @@ export class Hub extends EventEmitter {
     return removed;
   }
 
+  /** Wie lange die Sitzungen zusammen gearbeitet haben (nur Status „arbeitet“, nicht Start oder Warten). */
+  workedMs(now = Date.now()): number {
+    let sum = 0;
+    for (const a of this.agents.values()) sum += a.workedMs + (a.status === 'arbeitet' ? now - a.since : 0);
+    return sum;
+  }
+
   setStatus(a: AgentRec, s: AgentStatus, detail?: string): void {
     if (a.status === s && a.detail === detail) return;
-    if (a.status !== s) a.since = Date.now();
+    if (a.status !== s) {
+      const now = Date.now();
+      if (a.status === 'arbeitet') a.workedMs += now - a.since;
+      a.since = now;
+    }
     a.status = s;
     a.detail = detail;
     this.changed();

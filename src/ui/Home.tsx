@@ -496,7 +496,7 @@ export function Home({ hub, config, project, boot, needsSetup, startView, onActi
     const top = Math.max(0, Math.floor((R - lines.length) / 2));
     return (
       <Box flexDirection="column" width={C} height={R}>
-        <Lines lines={[...Array.from({ length: top }, () => [] as Line), ...lines]} height={R} />
+        <Lines lines={overlay(starfield(C, R, time, 0.05, 11), lines, top, C)} height={R} />
       </Box>
     );
   }

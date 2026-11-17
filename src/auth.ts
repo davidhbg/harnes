@@ -85,6 +85,21 @@ export async function claudeStatus(config: Config): Promise<AuthInfo> {
 }
 
 /**
+ * Abmelden über das offizielle Programm („claude auth logout“ bzw. „codex logout“).
+ * Das meldet das Programm auf dem ganzen Rechner ab – Harnes fasst die Anmeldedaten selbst nicht an.
+ */
+export async function logoutOf(config: Config, which: 'claude' | 'codex'): Promise<string> {
+  const prog = which === 'claude' ? 'Claude Code' : 'Codex';
+  const p = which === 'claude' ? claudeProgram(config) : codexProgram(config);
+  const r = await run(p, which === 'claude' ? ['auth', 'logout'] : ['logout'], 20_000);
+  if (r.code !== 0) {
+    const why = r.out.trim().split('\n')[0]?.slice(0, 100) || `Fehlercode ${r.code}`;
+    throw new Error(`${prog}: Abmelden hat nicht geklappt – ${why}`);
+  }
+  return `${prog} ist abgemeldet. Neu anmelden: Esc › Anbieter verbinden oder /einrichtung.`;
+}
+
+/**
  * Codex: „codex login status“ sieht nur, ob eine Anmeldung gespeichert ist. Ob sie noch gilt,
  * zeigt erst der app-server beim Auffrischen – deshalb wird dort nachgefragt.
  */

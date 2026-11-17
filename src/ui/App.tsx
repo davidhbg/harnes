@@ -5,7 +5,7 @@ import { fmtMoney, providerLabel } from '../balance.js';
 import { keyEnvFor, saveKey } from '../config.js';
 import type { Hub } from '../hub/hub.js';
 import { errText, truncate, width as textWidth, wrapText } from '../util.js';
-import { agentScene, centered, dissolve, galaxy, overlay, scene, type SceneName } from './art.js';
+import { agentScene, centered, dissolve, galaxy, overlay, scene, starfield, type SceneName } from './art.js';
 import { parseSpec, runCommand, suggest } from './commands.js';
 import { REVEAL_MS, chatLines, colorOf, helpLines, logLines, searchLines, statusDot, statusWord, taskLines, usageLines } from './lines.js';
 import { mouseEnabled, mouseEvents, setMouseEnabled, useMouse } from './mouse.js';
@@ -400,6 +400,9 @@ export function App({ hub, ui, project, onAction }: Props) {
   };
 
   const submit = () => {
+    // „claude auth logout“ / „codex logout“ ins Eingabefeld getippt: abmelden statt als Nachricht schicken
+    const out = /^(claudes+(auths+)?logout|codexs+logout)$/i.exec(ui.draft.trim());
+    if (out) ui.draft = `/abmelden ${out[1]!.toLowerCase().startsWith('codex') ? 'codex' : 'claude'}`;
     const line = ui.draft.trim();
     if (!line) return;
     if (!/^\/(schluessel|key)\b/i.test(line)) {
@@ -744,7 +747,7 @@ export function App({ hub, ui, project, onAction }: Props) {
     lines = helpLines(hub.humanLabel);
   } else if (ui.channel === 'verbrauch') {
     title = [{ text: 'Verbrauch', bold: true, color: T.text }];
-    subtitle = [d(`${fmtTokens(total.inputTokens + total.outputTokens)} Tokens neu · ${total.turns} Runden · läuft seit ${fmtDuration(now - hub.startedAt)} · Esc zurück`)];
+    subtitle = [d(`${fmtTokens(total.inputTokens + total.outputTokens)} Tokens neu · ${total.turns} Runden · gearbeitet ${fmtDuration(hub.workedMs(now))} · Esc zurück`)];
     lines = usageLines(hub, innerW, -phase);
   } else if (ui.channel === 'aufgaben') {
     const openT = hub.tasks.tasks.filter((t) => t.status !== 'erledigt').length;
@@ -852,7 +855,8 @@ export function App({ hub, ui, project, onAction }: Props) {
     const help = m.kind === 'liste' ? '↑↓ wählen · Enter oder Klick · Esc zurück' : 'Enter bestätigen · Esc zurück';
     box.push([{ text: ' '.repeat(left + 2) }, { text: help, color: T.faint }]);
     const base = visible.length < contentH ? [...visible, ...Array.from({ length: contentH - visible.length }, () => [] as Line)] : visible;
-    visible = overlay(dimLines(base), box, menuTop, innerW);
+    // Sterne im freien Raum hinter dem Menü
+    visible = overlay(overlay(starfield(innerW, contentH, clock, 0.05, 5), dimLines(base), 0, innerW), box, menuTop, innerW);
   }
 
   // gelesen-Stand des aktiven Kanals
@@ -868,7 +872,8 @@ export function App({ hub, ui, project, onAction }: Props) {
     activity.push(
       { text: `${a.status === 'freigabe' ? '!' : a.status === 'startet' ? '◌' : spin} `, color: a.status === 'arbeitet' ? T.pink : T.warn, bold: true },
       { text: a.name, color: colorOf(hub, a.name), bold: true },
-      { text: ` ${word} ${fmtDuration(now - a.since)}`, color: T.faint },
+      // die Uhr läuft erst, wenn wirklich gearbeitet wird (nicht beim Starten)
+      { text: a.status === 'startet' ? ` ${word} …` : ` ${word} ${fmtDuration(now - a.since)}`, color: T.faint },
     );
   }
 
@@ -1019,13 +1024,12 @@ export function App({ hub, ui, project, onAction }: Props) {
   const hints: Span[] = [{ text: ' › ', color: T.violet, bold: true }, { text: pathText, color: T.faint }];
   hits.push({ y: R - 1, x0: 0, x1: spansW(hints), run: () => doAction({ type: 'home', view: 'projekte' }) });
   hits.push({ y: R - 1, x0: C - rightW, x1: C, run: () => ((ui.channel = 'verbrauch'), (ui.menu = undefined)) });
+  // oben rechts: wie lange das Team gearbeitet hat – die Uhr steht, solange niemand arbeitet
+  const worked = hub.workedMs(now);
+  const workedSpan: Span[] = worked >= 1000 ? [{ text: `gearbeitet ${fmtDuration(worked)} `, color: T.faint }] : [{ text: ' ' }];
   const headRight: Span[] = working.length
-    ? [
-        { text: `${spin} `, color: T.pink, bold: true },
-        { text: `${working.length} aktiv`, color: T.pink },
-        { text: `  ${fmtDuration(now - hub.startedAt)} `, color: T.faint },
-      ]
-    : [{ text: `${fmtDuration(now - hub.startedAt)} `, color: T.faint }];
+    ? [{ text: `${spin} `, color: T.pink, bold: true }, { text: `${working.length} aktiv  `, color: T.pink }, ...workedSpan]
+    : workedSpan;
 
   return (
     <Box flexDirection="column" width={C} height={R}>
