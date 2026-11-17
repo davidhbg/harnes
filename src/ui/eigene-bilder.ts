@@ -1,7 +1,7 @@
 /**
  * Eigene Bilder (Braille-Zeichen) aus dem Harnes-Ordner, z. B. ~/.remoteharnes/bilder/startseite-1.txt.
- * Liegen dort keine, zeigt Harnes seine eingebauten Bilder. So bleiben persönliche Bilder auf dem
- * eigenen Rechner und gehören nicht zum Programm.
+ * Sie kommen zu den eingebauten Bildern (ui/bilder.ts) dazu; ein eigenes verbinden.txt ersetzt das
+ * eingebaute Bild neben der Einrichtung.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -23,7 +23,7 @@ export function ownImages(prefix: string): string[] {
       out = readdirSync(folder())
         .filter((f) => f.startsWith(prefix) && f.endsWith('.txt'))
         .sort()
-        .map((f) => readFileSync(join(folder(), f), 'utf8'))
+        .map((f) => readFileSync(join(folder(), f), 'utf8').replace(/\r/g, '').replace(/\n+$/, ''))
         .filter((s) => s.trim().length > 0);
     }
   } catch {

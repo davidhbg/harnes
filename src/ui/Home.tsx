@@ -10,6 +10,7 @@ import { cloneRepo, listRepos, removeRepo, repoFolder, searchRepos, type RepoHit
 import { recentProjects } from '../projects.js';
 import { errText, truncate } from '../util.js';
 import { brailleImage, galaxy, muse, overlay, starfield } from './art.js';
+import { BILDER } from './bilder.js';
 import { ownImages } from './eigene-bilder.js';
 import { startBegleiter } from '../begleiter.js';
 import { mouseEnabled, mouseEvents, setMouseEnabled, useMouse } from './mouse.js';
@@ -553,8 +554,8 @@ export function Home({ hub, config, project, boot, needsSetup, startView, onActi
       left.push([...label, { text: ' '.repeat(gap), bg }, { text: truncate(it.hint, hintW), color: T.faint, bg }, { text: ' ', bg }]);
     });
   }
-  // eigene Bilder (~/.remoteharnes/bilder/startseite-*.txt) im Wechsel alle 15 Sekunden, sonst das eingebaute
-  const own = ownImages('startseite');
+  // eingebaute Bilder und eigene (~/.remoteharnes/bilder/startseite-*.txt) im Wechsel alle 15 Sekunden
+  const own = [...new Set([...BILDER, ...ownImages('startseite')])];
   const bild = own[Math.floor(Date.now() / 15_000) % Math.max(1, own.length)];
   const art = !artW ? [] : bild ? brailleImage(bild, artW, R - 2, time) : muse(artW, R - 2, time);
   const leftTop = Math.max(0, Math.floor((R - 2 - left.length) / 2) - 1);

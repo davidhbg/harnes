@@ -7,7 +7,8 @@ import type { AuthInfo } from '../auth.js';
 import { keyEnvFor, saveKey, updateConfig, type Config } from '../config.js';
 import { errText, truncate, wrapText } from '../util.js';
 import { connectVaultRoot } from '../vault-connect.js';
-import { brailleImage, galaxy, muse } from './art.js';
+import { brailleImage, galaxy } from './art.js';
+import { BILD_VERBINDEN } from './bilder.js';
 import { ownImages } from './eigene-bilder.js';
 import { mouseEvents, useMouse } from './mouse.js';
 import { Lines, Row } from './Spans.js';
@@ -451,7 +452,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       </Box>
       {sideW > 0 && (
         <Box width={sideW}>
-          <Lines lines={ownImages('verbinden')[0] ? brailleImage(ownImages('verbinden')[0]!, sideW, R - 2, time) : muse(sideW, R - 2, time)} height={R - 2} />
+          <Lines lines={brailleImage(ownImages('verbinden')[0] ?? BILD_VERBINDEN, sideW, R - 2, time)} height={R - 2} />
         </Box>
       )}
       </Box>
