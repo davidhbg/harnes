@@ -296,6 +296,7 @@ export function helpLines(humanLabel: string): Line[] {
     row('/anmelden <name>', 'Sitzung neu anmelden'),
     row('/ende <name>', 'Sitzung schließen (auch /schliessen, /close, Strg+W zweimal)'),
     row('/trennen <name>  ·  /verbinden <name>', 'Sitzung vom Team trennen / wieder verbinden'),
+    row('/modus manuell|auto|voll', 'Freigaben dieser Sitzung (mit „alle“ für alle Sitzungen)'),
     row('/pause  ·  /weiter', 'Zustellung für alle anhalten / fortsetzen'),
     row('/wieder', 'Sitzungen vom letzten Mal erneut öffnen'),
     [],

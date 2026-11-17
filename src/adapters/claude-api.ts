@@ -6,6 +6,7 @@ import type { Adapter, AdapterContext } from './adapter.js';
 import { cleanEnv, summarizeToolInput } from './common.js';
 import { allMcp } from '../config.js';
 import { BROWSER_FREE } from '../hub/browser.js';
+import { artVonWerkzeug } from '../hub/freigabe.js';
 
 const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 
@@ -53,6 +54,8 @@ export class ClaudeApiAdapter implements Adapter {
         title: opts.title ?? `${ctx.name} möchte ${toolName} verwenden`,
         detail: summarizeToolInput(toolName, toolInput),
         allowAlways: Boolean(opts.suggestions?.length),
+        art: artVonWerkzeug(toolName),
+        befehl: String((toolInput as Record<string, unknown>)?.command ?? ''),
       });
       if (decision === 'ja') return { behavior: 'allow', updatedInput: toolInput };
       if (decision === 'immer') return { behavior: 'allow', updatedInput: toolInput, updatedPermissions: opts.suggestions };

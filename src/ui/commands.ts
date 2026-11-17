@@ -1,6 +1,7 @@
 import type { AgentSpec } from '../adapters/adapter.js';
 import { logoutOf } from '../auth.js';
-import { keyEnvFor, saveKey } from '../config.js';
+import { keyEnvFor, saveKey, updateConfig } from '../config.js';
+import { MODI, modusLabel, parseModus } from '../hub/freigabe.js';
 import type { Hub } from '../hub/hub.js';
 import type { AgentKind } from '../types.js';
 import { startBegleiter } from '../begleiter.js';
@@ -47,6 +48,7 @@ export const COMMANDS: { name: string; args?: string; desc: string; kinds?: Agen
   { name: '/abmelden', args: '[claude|codex]', desc: 'Claude Code oder Codex abmelden (auch /logout)' },
   { name: '/konten', desc: 'alle Anmeldungen und Schlüssel auf einen Blick' },
   { name: '/schluessel', args: '<anbieter> <schlüssel>', desc: 'API-Schlüssel speichern' },
+  { name: '/modus', args: '[manuell|auto|voll] [alle]', desc: 'Freigaben: manuell, auto oder vollautomatisch' },
   { name: '/pause', desc: 'Zustellung anhalten' },
   { name: '/weiter', desc: 'Zustellung fortsetzen' },
   { name: '/wieder', desc: 'Sitzungen vom letzten Mal öffnen' },
@@ -262,6 +264,27 @@ export async function runCommand(line: string, env: CommandEnv): Promise<string 
       const name = agentArg(hub, rest[0] ?? (ui.channel.startsWith('agent:') ? ui.channel.slice(6) : undefined));
       hub.setConnected(name, cmd === '/verbinden');
       return;
+    }
+    case '/modus':
+    case '/freigaben': {
+      const here = ui.channel.startsWith('agent:') ? ui.channel.slice(6) : undefined;
+      const all = rest.some((w) => /^(alle|all|team)$/i.test(w));
+      const word = rest.find((w) => !/^(alle|all|team)$/i.test(w));
+      const def = hub.opts.config.freigabe ?? 'auto';
+      if (!word) {
+        const now = here ? `${here}: ${modusLabel(hub.modusOf(here))} · ` : '';
+        return `Freigaben – ${now}Standard für alle: ${modusLabel(def)}. Ändern: /modus manuell · /modus auto · /modus voll (für alle: /modus alle auto)`;
+      }
+      const modus = parseModus(word);
+      if (!modus) throw new Error(`Modus „${word}“ kenne ich nicht. Möglich: ${MODI.map((m) => m.id).join(', ')}`);
+      const warn = modus === 'voll' ? ' Achtung: Die Sitzungen fragen jetzt auch bei Befehlen nicht mehr.' : '';
+      if (all || !here) {
+        updateConfig((c) => {
+          c.freigabe = modus;
+        });
+        return hub.setModus(undefined, modus) + warn;
+      }
+      return hub.setModus(here, modus) + warn;
     }
     case '/pause':
       hub.pause();

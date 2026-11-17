@@ -94,7 +94,7 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
   const [, rerender] = useReducer((x: number) => x + 1, 0);
   const [notice, setNotice] = useState(initialNotice ?? '');
   const [keyValue, setKeyValue] = useState('');
-  const { time } = useAnimation({ interval: state.step === 'willkommen' ? 70 : 140 });
+  const { time } = useAnimation({ interval: state.step === 'willkommen' ? 200 : 300 });
 
   const check = (row: StartRow, verify = true) => {
     status[row.id] = { state: 'pruefe', text: 'wird geprüft …' };

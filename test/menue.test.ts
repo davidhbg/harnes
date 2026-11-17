@@ -47,7 +47,7 @@ describe('Sitzungen verwalten', () => {
 
 describe('Eingabehilfen', () => {
   it('Vorschläge beim Tippen von /', () => {
-    expect(suggest('/mo').map((c) => c.name)).toEqual(['/model']);
+    expect(suggest('/mo').map((c) => c.name)).toEqual(['/model', '/modus']);
     expect(suggest('/model ').length).toBe(0);
     expect(suggest('hallo').length).toBe(0);
     expect(suggest('/').length).toBeGreaterThan(3);

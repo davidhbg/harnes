@@ -39,6 +39,8 @@ async function setup() {
   const config = defaultConfig();
   config.vaultRoot = join(dir, 'vault');
   config.claudeAbo.befehl = fakeClaudeCommand(dir);
+  // Freigabe-Karten prüfen: im Modus Manuell fragt jede Aktion
+  config.freigabe = 'manuell';
   const vault = new Vault(join(dir, 'vault', 'T'), 'T', config.benutzer);
   vault.init();
   const hub = new Hub({ project: 'T', cwd: dir, config, store: new Store(join(dir, 'state')), vault, mcpServerPath: resolve('dist/mcp.js'), createAdapter });

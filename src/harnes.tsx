@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -95,7 +94,8 @@ function parseArgs(argv: string[]): Args {
 
 /** Öffnet Harnes in einem eigenen Terminal-Fenster und kehrt sofort zurück. */
 function openInNewWindow(args: Args): void {
-  const cli = fileURLToPath(import.meta.url);
+  // über den Starter (cli.js), damit auch das neue Fenster im Produktionsmodus läuft
+  const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.js');
   const rest = args.rest.filter((a) => a.startsWith('-') || resolve(a) !== args.cwd);
   const run = [process.execPath, cli, args.cwd, ...rest];
   let cmd: string;

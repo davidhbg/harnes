@@ -5,6 +5,7 @@ import { useEffect, useReducer, useRef } from 'react';
 import { openInBrowser } from '../adapters/common.js';
 import { connectVaultRoot } from '../vault-connect.js';
 import { updateConfig, type Config } from '../config.js';
+import { MODI, modusLabel, type FreigabeModus } from '../hub/freigabe.js';
 import type { Hub } from '../hub/hub.js';
 import { cloneRepo, listRepos, removeRepo, repoFolder, searchRepos, type RepoHit } from '../hub/repos.js';
 import { recentProjects } from '../projects.js';
@@ -84,7 +85,7 @@ export function Home({ hub, config, project, boot, needsSetup, startView, onActi
     query: '',
     hits: [] as RepoHit[],
   }).current;
-  const { time } = useAnimation({ interval: st.view === 'boot' ? 50 : 110 });
+  const { time } = useAnimation({ interval: st.view === 'boot' ? 50 : 300 });
 
   const doAction = (a: HomeAction) => {
     onAction(a);
@@ -171,6 +172,21 @@ export function Home({ hub, config, project, boot, needsSetup, startView, onActi
       items = [
         { icon: '›', label: 'Zugänge prüfen und reparieren', hint: 'wenn etwas nicht geht', run: () => doAction({ type: 'einrichtung' }) },
         { icon: '›', label: 'Anmeldungen und Schlüssel', hint: 'alles auf einen Blick', run: () => doAction({ type: 'konten' }) },
+        {
+          icon: '›',
+          label: 'Freigaben',
+          hint: `${modusLabel(config.freigabe ?? 'auto')} – Enter wechselt`,
+          run: () => {
+            const order: FreigabeModus[] = ['manuell', 'auto', 'voll'];
+            const next = order[(order.indexOf(config.freigabe ?? 'auto') + 1) % order.length]!;
+            updateConfig((c) => {
+              c.freigabe = next;
+            });
+            config.freigabe = next;
+            hub.setModus(undefined, next);
+            st.notice = `Freigaben für alle Sitzungen: ${modusLabel(next)} – ${MODI.find((m) => m.id === next)?.about}.`;
+          },
+        },
         { icon: '@', label: 'MCP-Server', hint: `${Object.keys(mcp).length} eingerichtet`, run: () => go('mcp') },
         {
           icon: '◇',

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir, userInfo } from 'node:os';
 import { join } from 'node:path';
+import type { FreigabeModus } from './hub/freigabe.js';
 
 export interface ProviderConfig {
   /** OpenAI-kompatible Basis-URL, z. B. https://api.deepseek.com/v1 */
@@ -29,6 +30,8 @@ export interface Config {
   budget: { tokensProSitzung: number; usdProSitzung: number };
   /** Signalton, wenn eine Sitzung dich braucht (Freigabe, Privatnachricht) */
   signalton: boolean;
+  /** Freigabe-Modus für alle Sitzungen ohne eigenen Modus: manuell, auto oder voll */
+  freigabe?: FreigabeModus;
   claudeApi: { modell: string; apiKeyEnv: string; budgetUsd: number };
   claudeAbo: { befehl: string; modell: string; extraArgs: string[] };
   /** autoUpdate: Codex-CLI einmal am Tag prüfen und still aktualisieren (Standard: an) */
@@ -60,6 +63,7 @@ export function defaultConfig(): Config {
     benutzer: defaultUserName(),
     vaultRoot: join(homeDir(), 'vault'),
     kettenLimit: 6,
+    freigabe: 'auto',
     budget: { tokensProSitzung: 0, usdProSitzung: 0 },
     signalton: true,
     claudeApi: { modell: 'claude-opus-5-5', apiKeyEnv: 'ANTHROPIC_API_KEY', budgetUsd: 5 },

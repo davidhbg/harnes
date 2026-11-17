@@ -11,6 +11,7 @@ import { cleanEnv, findOnPath, summarizeToolInput } from './common.js';
 import { reposDir } from '../hub/repos.js';
 import { allMcp } from '../config.js';
 import { BROWSER_FREE } from '../hub/browser.js';
+import { artVonWerkzeug } from '../hub/freigabe.js';
 
 const { Terminal } = xtermPkg;
 const { SerializeAddon } = serializePkg;
@@ -182,6 +183,7 @@ export class ClaudeAboAdapter implements Adapter {
         (home ? ' Im Benutzerordner fragt Claude Code bei jedem Start – mit einem Projektordner (/projekt) nur beim ersten Mal.' : ''),
       allowAlways: false,
       timeoutMs: 600_000,
+      art: 'ordner',
     });
     if (this.stopped || this.exited || this.ready) return;
     if (decision === 'timeout') {
@@ -393,6 +395,8 @@ export class ClaudeAboAdapter implements Adapter {
         const decision = await ctx.requestApproval({
           title: `${ctx.name} möchte ${tool} verwenden`,
           detail: summarizeToolInput(tool, input.tool_input as Json),
+          art: artVonWerkzeug(tool),
+          befehl: String((input.tool_input as Json)?.command ?? ''),
           allowAlways: Array.isArray(input.permission_suggestions) && input.permission_suggestions.length > 0,
           timeoutMs: 270_000,
         });

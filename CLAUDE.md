@@ -38,6 +38,11 @@ Bedienung und Überblick: `README.md`.
   geht *kein* Modell („not supported when using Codex with a ChatGPT account“). `src/codex-update.ts` hält die Codex-CLI
   aktuell (einmal am Tag, `codex.autoUpdate`). Ohne eigene Wahl nimmt Harnes das Standardmodell aus `model/list`, weil in
   `~/.codex/config.toml` ein veraltetes Modell stehen kann.
+- **Freigaben (Manuell / Auto / Vollautomatisch):** entschieden wird zentral in `hub.requestApproval` über
+  `hub/freigabe.ts`; jeder Adapter gibt die Art der Aktion mit (`art`, bei Befehlen `befehl`). Standard `config.freigabe`
+  (neu: auto), je Sitzung `spec.modus`. „Ordner vertrauen“ fragt immer. Codex bekommt bei Manuell `approvalPolicy: untrusted`.
+- **Starter `cli.ts`:** setzt `NODE_ENV=production`, *bevor* React/Ink geladen werden, und lädt dann `harnes.tsx`.
+  In einer .tsx-Datei geht das nicht (TypeScript setzt den JSX-Import davor). Entwicklungsfassung kostete im Leerlauf ~4× Rechenzeit.
 - **Adressen öffnen unter Windows** nie über `cmd /c start` (schneidet bei `&` ab), sondern `openInBrowser()`.
 - **`fetch` ignoriert eine eigene `host`-Kopfzeile**; für Tests der Host-Prüfung `node:http` nehmen.
 - **Anmelden (claude auth login, codex login)** läuft per `spawn` mit `stdio: 'inherit'` im selben Terminal,

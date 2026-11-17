@@ -1,5 +1,6 @@
 import type { Config } from '../config.js';
 import type { AgentKind, AgentStatus, ApprovalDecision, LogEntry, Message, ToolDef, Usage } from '../types.js';
+import type { AktionsArt, FreigabeModus } from '../hub/freigabe.js';
 
 export interface AgentSpec {
   kind: AgentKind;
@@ -9,6 +10,8 @@ export interface AgentSpec {
   provider?: string;
   /** Rollen-Vorlage (entwickler, tester, reviewer, …) */
   rolle?: string;
+  /** eigener Freigabe-Modus dieser Sitzung (sonst gilt config.freigabe) */
+  modus?: FreigabeModus;
 }
 
 /** Alles, was eine Sitzung von der Zentrale braucht. */
@@ -37,6 +40,10 @@ export interface AdapterContext {
     detail: string;
     allowAlways?: boolean;
     timeoutMs?: number;
+    /** Art der Aktion: Danach entscheidet der Freigabe-Modus, ob überhaupt gefragt wird */
+    art?: AktionsArt;
+    /** bei art 'befehl': der Befehl selbst */
+    befehl?: string;
   }): Promise<ApprovalDecision | 'timeout'>;
   /** Offene Freigabe-Karten dieser Sitzung zurückziehen (Ergebnis: 'timeout'). */
   cancelApprovals(): void;
@@ -71,6 +78,8 @@ export interface Adapter {
   onHook?(event: string, input: Record<string, unknown>): Promise<Record<string, unknown> | null>;
   /** Aktueller Bildschirm der Sitzung als Textzeilen (für die Vorschau). */
   screenLines?(): string[];
+  /** Freigabe-Modus hat sich geändert (z. B. Codex: Nachfrage-Regel der nächsten Runde) */
+  setModus?(modus: FreigabeModus): void;
   /** Modell wechseln; Rückgabe ist ein Hinweis für den Teamleiter. */
   setModel?(model: string): Promise<string | void>;
   /** Einen eigenen Befehl der Sitzung ausführen (z. B. /compact); Rückgabe ist ein Hinweis. */

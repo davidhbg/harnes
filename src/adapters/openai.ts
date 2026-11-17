@@ -58,6 +58,7 @@ export class OpenAiAdapter implements Adapter {
   private stopped = false;
   private toolsSupported = true;
   private alwaysAllowShell = false;
+  private alwaysAllowWrite = false;
   private baseUrl = '';
   private model = '';
   private key?: string;
@@ -261,8 +262,14 @@ export class OpenAiAdapter implements Adapter {
             const d = await ctx.requestApproval({
               title: `${ctx.name} möchte eine heikle Datei schreiben`,
               detail: `${relative(ctx.cwd, abs)}\n(Git-Hooks, Einstellungen, Skripte oder Paketdatei: darüber kann Code laufen)`,
+              art: 'heikel',
             });
             if (d !== 'ja' && d !== 'immer') return `${ctx.humanLabel} hat das Schreiben von ${relative(ctx.cwd, abs)} abgelehnt.`;
+          } else if (!this.alwaysAllowWrite) {
+            // Im Modus Manuell fragt das nach, sonst entscheidet der Hub ohne Karte
+            const d = await ctx.requestApproval({ title: `${ctx.name} möchte eine Datei schreiben`, detail: relative(ctx.cwd, abs), art: 'bearbeiten' });
+            if (d === 'immer') this.alwaysAllowWrite = true;
+            else if (d !== 'ja') return `${ctx.humanLabel} hat das Schreiben von ${relative(ctx.cwd, abs)} abgelehnt.`;
           }
           const holder = ctx.claimFile(abs);
           if (holder) return `Fehler: Die Datei ist von ${holder} reserviert. Sprich dich mit @${holder} ab.`;
@@ -276,7 +283,7 @@ export class OpenAiAdapter implements Adapter {
           const cmd = String(args.befehl ?? '').trim();
           if (!cmd) return 'Fehler: Befehl fehlt.';
           if (!this.alwaysAllowShell) {
-            const d = await ctx.requestApproval({ title: `${ctx.name} möchte einen Befehl ausführen`, detail: `$ ${cmd}` });
+            const d = await ctx.requestApproval({ title: `${ctx.name} möchte einen Befehl ausführen`, detail: `$ ${cmd}`, art: 'befehl', befehl: cmd });
             if (d === 'immer') this.alwaysAllowShell = true;
             else if (d !== 'ja') return `${ctx.humanLabel} hat den Befehl abgelehnt.`;
           }
@@ -296,6 +303,7 @@ export class OpenAiAdapter implements Adapter {
                 title: `${ctx.name} möchte ein MCP-Werkzeug nutzen (${server})`,
                 detail: `${name}\n${truncate(JSON.stringify(args), 400)}`,
                 allowAlways: true,
+                art: 'werkzeug',
               });
               if (d === 'immer') this.mcpAllowed.add(server);
               else if (d !== 'ja') return `${ctx.humanLabel} hat das Werkzeug abgelehnt.`;

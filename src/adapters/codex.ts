@@ -8,6 +8,7 @@ import type { Adapter, AdapterContext } from './adapter.js';
 import { cleanEnv, findOnPath, openInBrowser } from './common.js';
 import { allMcp } from '../config.js';
 import { keepCodexCurrent } from '../codex-update.js';
+import type { FreigabeModus } from '../hub/freigabe.js';
 
 type Json = Record<string, unknown>;
 
@@ -156,7 +157,7 @@ export class CodexAdapter implements Adapter {
     const res = await this.request('thread/start', {
       cwd: ctx.cwd,
       model,
-      approvalPolicy: ctx.config.codex.approvalPolicy,
+      approvalPolicy: this.approvalPolicy(),
       sandbox: ctx.config.codex.sandbox,
       developerInstructions: ctx.systemPrompt,
     });
@@ -342,7 +343,7 @@ export class CodexAdapter implements Adapter {
           const detail = [`$ ${String(p.command ?? '(Befehl unbekannt)')}`, p.cwd ? `in ${String(p.cwd)}` : '', p.reason ? `Grund: ${String(p.reason)}` : '']
             .filter(Boolean)
             .join('\n');
-          const d = await ctx.requestApproval({ title: `${ctx.name} möchte einen Befehl ausführen`, detail });
+          const d = await ctx.requestApproval({ title: `${ctx.name} möchte einen Befehl ausführen`, detail, art: 'befehl', befehl: String(p.command ?? '') });
           respond({ decision: d === 'ja' ? 'accept' : d === 'immer' ? 'acceptForSession' : 'decline' });
           break;
         }
@@ -358,14 +359,19 @@ export class CodexAdapter implements Adapter {
             break;
           }
           const detail = [paths, p.reason ? `Grund: ${String(p.reason)}` : ''].filter(Boolean).join('\n') || 'Dateien ändern';
-          const d = await ctx.requestApproval({ title: `${ctx.name} möchte Dateien ändern`, detail });
+          const d = await ctx.requestApproval({ title: `${ctx.name} möchte Dateien ändern`, detail, art: 'bearbeiten' });
           respond({ decision: d === 'ja' ? 'accept' : d === 'immer' ? 'acceptForSession' : 'decline' });
           break;
         }
         case 'execCommandApproval':
         case 'applyPatchApproval': {
           const detail = method === 'execCommandApproval' ? `$ ${((p.command as string[]) ?? []).join(' ')}` : 'Dateien ändern';
-          const d = await ctx.requestApproval({ title: `${ctx.name} bittet um Freigabe`, detail });
+          const d = await ctx.requestApproval({
+            title: `${ctx.name} bittet um Freigabe`,
+            detail,
+            art: method === 'execCommandApproval' ? 'befehl' : 'bearbeiten',
+            befehl: method === 'execCommandApproval' ? ((p.command as string[]) ?? []).join(' ') : undefined,
+          });
           respond({ decision: d === 'ja' ? 'approved' : d === 'immer' ? 'approved_for_session' : 'denied' });
           break;
         }
@@ -379,6 +385,7 @@ export class CodexAdapter implements Adapter {
             title: `${ctx.name}: Rückfrage des Werkzeugs „${String(p.serverName)}“`,
             detail: String(p.message ?? ''),
             allowAlways: false,
+            art: 'werkzeug',
           });
           respond({ action: d === 'ja' ? 'accept' : 'decline', content: d === 'ja' && p.mode === 'form' ? {} : null, _meta: null });
           break;
@@ -401,6 +408,7 @@ export class CodexAdapter implements Adapter {
         threadId: this.threadId,
         input: [{ type: 'text', text, text_elements: [] }],
         ...(this.model ? { model: this.model } : {}),
+        approvalPolicy: this.approvalPolicy(),
       });
       this.turnId = String((res.turn as Json)?.id ?? this.turnId);
     } catch (e) {
@@ -410,7 +418,18 @@ export class CodexAdapter implements Adapter {
   }
 
   private model = '';
+  private modus: FreigabeModus | undefined;
   private toldOutdated = false;
+
+  /** Manuell: Codex fragt bei allem, was nicht sicher ist; sonst nur, wenn es den Sandkasten verlassen will */
+  private approvalPolicy(): string {
+    const modus = this.modus ?? this.ctx.spec.modus ?? this.ctx.config.freigabe ?? 'auto';
+    return modus === 'manuell' ? 'untrusted' : this.ctx.config.codex.approvalPolicy;
+  }
+
+  setModus(modus: FreigabeModus): void {
+    this.modus = modus;
+  }
   /** Modell, das Codex beim Start tatsächlich gewählt hat */
   private startModel = '';
 

@@ -107,7 +107,7 @@ describe('Oberfläche im echten Terminal (ohne KI)', () => {
     const fake = join(dir, process.platform === 'win32' ? 'fake-claude.cmd' : 'fake-claude');
     writeFileSync(fake, process.platform === 'win32' ? `@"${process.execPath}" "${script}" %*\r\n` : `#!/bin/sh\nexec "${process.execPath}" "${script}" "$@"\n`, { mode: 0o755 });
 
-    const { t } = start('claude:max', 110, 32, { claudeAbo: { befehl: fake } });
+    const { t } = start('claude:max', 110, 32, { claudeAbo: { befehl: fake }, freigabe: 'manuell' });
     await t.waitFor('max (Claude · Abo) ist dem Team beigetreten', 15_000);
     t.write('\t');
     await pause(150);
@@ -147,18 +147,19 @@ describe('Oberfläche im echten Terminal (ohne KI)', () => {
     t.write('\u001b');
     let s = await t.waitFor('Startseite');
     expect(s).toMatch(/ 1 Startseite/);
-    expect(s).toMatch(/10 Verlauf durchsuchen/);
-    expect(s).toMatch(/14 Beenden/);
-    // 1 und 3 schnell hintereinander: Eintrag 13 (Hilfe)
+    expect(s).toMatch(/ 3 Freigaben/);
+    expect(s).toMatch(/11 Verlauf durchsuchen/);
+    expect(s).toMatch(/15 Beenden/);
+    // 1 und 4 schnell hintereinander: Eintrag 14 (Hilfe)
     t.write('1');
     await pause(150);
-    t.write('3');
+    t.write('4');
     await t.waitFor('Alle Befehle und Tasten');
     // 1 allein: nach kurzem Warten Eintrag 1 (Startseite)
     t.write('\u001b');
     await pause(300);
     t.write('\u001b');
-    await t.waitFor(/14 Beenden/);
+    await t.waitFor(/15 Beenden/);
     t.write('1');
     await t.waitFor('Wohin?', 5000);
   }, 60_000);

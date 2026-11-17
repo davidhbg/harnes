@@ -2,7 +2,8 @@ import type { EventEmitter } from 'node:events';
 import { Box, Text, useAnimation, useApp, useInput, usePaste, useStdin, useWindowSize } from 'ink';
 import { useEffect, useReducer, useRef } from 'react';
 import { fmtMoney, providerLabel } from '../balance.js';
-import { keyEnvFor, saveKey } from '../config.js';
+import { keyEnvFor, saveKey, updateConfig } from '../config.js';
+import { MODI, modusLabel, type FreigabeModus } from '../hub/freigabe.js';
 import type { Hub } from '../hub/hub.js';
 import { errText, truncate, width as textWidth, wrapText } from '../util.js';
 import { cachedModels, listModels } from '../models.js';
@@ -74,7 +75,8 @@ export function App({ hub, ui, project, onAction }: Props) {
   const lastMsg = hub.messages[hub.messages.length - 1];
   const fresh = Boolean(lastMsg && !lastMsg.system && now - lastMsg.ts < REVEAL_MS + 150);
   const animating = working.length > 0 || fresh || hub.approvals.length > 0;
-  const { frame, time } = useAnimation({ interval: animating ? 90 : 260 });
+  // im Leerlauf nur gemächlich funkeln: jedes Bild zeichnet den ganzen Bildschirm neu und kostet Rechenzeit
+  const { frame, time } = useAnimation({ interval: animating ? 90 : 700 });
   const clock = now - hub.startedAt;
   const spin = SPINNER[frame % SPINNER.length]!;
   const phase = time / 5000;
@@ -285,10 +287,29 @@ export function App({ hub, ui, project, onAction }: Props) {
       close();
     },
   });
+  /** Freigaben: für die aktuelle Sitzung oder für alle (dann Standard für neue Sitzungen) */
+  const modusMenu = (): Menu => {
+    const def = hub.opts.config.freigabe ?? 'auto';
+    const setAll = (m: FreigabeModus) => {
+      updateConfig((c) => {
+        c.freigabe = m;
+      });
+      return hub.setModus(undefined, m);
+    };
+    const items: MenuItem[] = [];
+    if (agentName) {
+      const cur = hub.modusOf(agentName);
+      for (const m of MODI) items.push({ label: `${agentName}: ${m.label}`, hint: `${m.about}${cur === m.id ? ' · aktuell' : ''}`, run: () => (close(), report(hub.setModus(agentName, m.id))) });
+    }
+    for (const m of MODI) items.push({ label: `Alle Sitzungen: ${m.label}`, hint: `${m.about}${def === m.id ? ' · Standard' : ''}`, run: () => (close(), report(setAll(m.id))) });
+    const at = agentName ? MODI.findIndex((m) => m.id === hub.modusOf(agentName)) : MODI.findIndex((m) => m.id === def);
+    return { kind: 'liste', title: 'Freigaben', cursor: Math.max(0, at), back: mainMenu, items };
+  };
   function mainMenu(): Menu {
     const items: MenuItem[] = [
       { label: 'Startseite', hint: 'Einstellungen, MCP, Vault', run: () => (close(), doAction({ type: 'home' })) },
       { label: 'Neue Sitzung', hint: 'Claude, Codex, API, lokal', run: () => open(newSessionMenu()) },
+      { label: 'Freigaben', hint: modusLabel(agentName ? hub.modusOf(agentName) : (hub.opts.config.freigabe ?? 'auto')), run: () => open(modusMenu()) },
     ];
     if (hub.agents.size) {
       items.push(
@@ -787,7 +808,7 @@ export function App({ hub, ui, project, onAction }: Props) {
       { text: agent.name, bold: true, color: T.text },
       { text: `   ${statusWord(agent.status)}`, color: BUSY.includes(agent.status) ? T.pink : T.faint },
     ];
-    subtitle = [d(`${agent.label}${agent.spec.model ? ` · ${agent.spec.model}` : ''}${used ? ` · ${fmtTokens(used)} Tokens` : ''}${ui.logView ? ' · Arbeitsprotokoll' : ' · Privatchat'}`)];
+    subtitle = [d(`${agent.label}${agent.spec.model ? ` · ${agent.spec.model}` : ''}${used ? ` · ${fmtTokens(used)} Tokens` : ''}${ui.logView ? ' · Arbeitsprotokoll' : ' · Privatchat'} · Freigaben ${modusLabel(hub.modusOf(agent.name))}`)];
     if (ui.logView) lines = logLines(agent, innerW);
     else {
       const msgs = hub.channelMessages(ui.channel);
@@ -804,7 +825,7 @@ export function App({ hub, ui, project, onAction }: Props) {
     }
   } else {
     title = [{ text: 'Team', bold: true, color: T.text }];
-    subtitle = [d(`${hub.liveAgents().length} Sitzung(en) · alle lesen mit · @name spricht eine Sitzung direkt an`)];
+    subtitle = [d(`${hub.liveAgents().length} Sitzung(en) · alle lesen mit · @name spricht eine Sitzung direkt an · Freigaben ${modusLabel(hub.opts.config.freigabe ?? 'auto')}`)];
     const msgs = hub.channelMessages('team');
     lines = chatLines(hub, msgs, innerW, now);
     backdrop = 'pegasus';

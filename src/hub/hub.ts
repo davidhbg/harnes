@@ -21,6 +21,7 @@ import { roleById } from './roles.js';
 import { TaskBoard } from './tasks.js';
 import { TOOL_DEFS, runTool } from './tools.js';
 import type { Vault } from './vault.js';
+import { MODI, modusLabel, selbstEntscheiden, type AktionsArt, type FreigabeModus } from './freigabe.js';
 
 export interface AgentRec {
   name: string;
@@ -60,6 +61,8 @@ export function fmtTokens(n: number): string {
 
 interface PendingApproval extends Approval {
   resolve: (d: ApprovalDecision | 'timeout') => void;
+  art?: AktionsArt;
+  befehl?: string;
   timer?: NodeJS.Timeout;
 }
 
@@ -83,7 +86,7 @@ const LIVE: AgentStatus[] = ['startet', 'wartet', 'arbeitet', 'freigabe'];
  */
 export class Hub extends EventEmitter {
   readonly messages: Message[] = [];
-  /** Guthaben der API-Anbieter (setzt cli.tsx; in Tests leer) */
+  /** Guthaben der API-Anbieter (setzt harnes.tsx; in Tests leer) */
   balance?: BalanceWatch;
   readonly agents = new Map<string, AgentRec>();
   readonly approvals: PendingApproval[] = [];
@@ -681,11 +684,46 @@ export class Hub extends EventEmitter {
 
   // ---------- Freigaben ----------
 
+  /** Freigabe-Modus einer Sitzung: eigener Modus, sonst der Standard aus den Einstellungen */
+  modusOf(name: string): FreigabeModus {
+    return this.agents.get(name)?.spec.modus ?? this.opts.config.freigabe ?? 'auto';
+  }
+
+  /**
+   * Freigabe-Modus setzen: für eine Sitzung oder (ohne Namen) als Standard für alle –
+   * dann folgen alle Sitzungen dem Standard. Offene Karten, die der neue Modus erlaubt, gehen durch.
+   */
+  setModus(name: string | undefined, modus: FreigabeModus): string {
+    const targets = name ? [this.agents.get(name)] : [...this.agents.values()];
+    if (name && !targets[0]) throw new Error(`Sitzung „${name}“ gibt es nicht.`);
+    if (!name) this.opts.config.freigabe = modus;
+    for (const a of targets) {
+      if (!a) continue;
+      if (name) a.spec.modus = modus;
+      else delete a.spec.modus;
+      a.adapter?.setModus?.(this.modusOf(a.name));
+    }
+    this.saveRoster();
+    for (const ap of [...this.approvals]) {
+      if (name && ap.agent !== name) continue;
+      if (selbstEntscheiden(this.modusOf(ap.agent), ap.art, ap.befehl)) this.finishApproval(ap.id, 'ja');
+    }
+    this.changed();
+    const label = modusLabel(modus);
+    return name ? `${name}: Freigaben ${label} (${MODI.find((m) => m.id === modus)?.about}).` : `Alle Sitzungen: Freigaben ${label} (${MODI.find((m) => m.id === modus)?.about}).`;
+  }
+
   requestApproval(
     agent: string,
-    req: { title: string; detail: string; allowAlways?: boolean; timeoutMs?: number },
+    req: { title: string; detail: string; allowAlways?: boolean; timeoutMs?: number; art?: AktionsArt; befehl?: string },
   ): Promise<ApprovalDecision | 'timeout'> {
     const a = this.agents.get(agent);
+    // Erlaubt der Freigabe-Modus die Aktion, gibt es keine Karte
+    const modus = this.modusOf(agent);
+    if (selbstEntscheiden(modus, req.art, req.befehl)) {
+      if (a) this.logTo(a, 'info', `ohne Nachfrage erlaubt (Freigaben ${modusLabel(modus)}): ${truncate(req.title, 120)}`);
+      return Promise.resolve('ja');
+    }
     return new Promise((resolve) => {
       const ap: PendingApproval = {
         id: uid('f'),
@@ -695,6 +733,8 @@ export class Hub extends EventEmitter {
         allowAlways: req.allowAlways ?? true,
         createdAt: Date.now(),
         resolve,
+        art: req.art,
+        befehl: req.befehl,
       };
       if (req.timeoutMs) {
         ap.timer = setTimeout(() => this.finishApproval(ap.id, 'timeout'), req.timeoutMs);
