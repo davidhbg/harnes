@@ -26,7 +26,7 @@ import { createUiState, type UiAction } from './ui/state.js';
 import { pauseInput, resumeInput, terminalInput } from './ui/wininput.js';
 import { errText, safeName } from './util.js';
 
-const VERSION = '0.1.5';
+const VERSION = '0.1.6';
 
 const HELP = `Harnes ${VERSION} – KI-Sitzungen als Team
 
