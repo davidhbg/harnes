@@ -29,9 +29,7 @@ if (!existsSync(join(out, tgz))) throw new Error(`${tgz} fehlt`);
 copyFileSync(join(out, tgz), join(out, 'harnes.tgz'));
 
 // 3. Installer für die Ein-Zeilen-Installation (install.sh immer mit Unix-Zeilenenden)
-writeFileSync(join(out, 'install.sh'), readFileSync(join(root, 'installer', 'install.sh'), 'utf8').replace(/
-/g, '
-'));
+writeFileSync(join(out, 'install.sh'), readFileSync(join(root, 'installer', 'install.sh'), 'utf8').replace(/\r\n/g, '\n'));
 copyFileSync(join(root, 'installer', 'install.ps1'), join(out, 'install.ps1'));
 
 // 4. Installationsbefehl neben das Paket legen
