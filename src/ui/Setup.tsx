@@ -269,6 +269,13 @@ export function Setup({ config, rows, status, state, recheck, notice: initialNot
       sub = `Zugang ${state.idx + 1} von ${chosenRows.length} · ${ABOUT[r.id] ?? ''}`;
       body.push([d(HOW[r.login])], [], [{ text: `${m.ch} `, color: m.color, bold: true }, { text: s.text, color: s.state === 'ok' ? T.ok : T.text }], []);
       if (s.state === 'ok') {
+        if (r.login === 'claude' || r.login === 'codex') {
+          // Die Anmeldung gehört dem Programm selbst (Claude Code bzw. Codex), Harnes prüft sie nur
+          const prog = r.login === 'claude' ? 'Claude Code' : 'Codex';
+          const out = r.login === 'claude' ? 'claude auth logout' : 'codex logout';
+          body.push([d(`${prog} ist auf diesem Rechner schon angemeldet – Harnes nutzt diese Anmeldung mit.`)]);
+          body.push([d('Anderes Konto? In einem Terminal '), { text: out, color: T.text }, d(' eingeben und hier neu anmelden.')], []);
+        }
         bodyHits[body.length] = next;
         body.push([k('[ Weiter ]'), d('  verbunden')]);
       } else if (r.login === 'claude' || r.login === 'codex') {

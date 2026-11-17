@@ -28,7 +28,13 @@ if (!existsSync(join(out, tgz))) throw new Error(`${tgz} fehlt`);
 // gleicher Inhalt unter festem Namen: …/releases/latest/download/harnes.tgz holt immer die neueste Fassung
 copyFileSync(join(out, tgz), join(out, 'harnes.tgz'));
 
-// 3. Installationsbefehl neben das Paket legen
+// 3. Installer für die Ein-Zeilen-Installation (install.sh immer mit Unix-Zeilenenden)
+writeFileSync(join(out, 'install.sh'), readFileSync(join(root, 'installer', 'install.sh'), 'utf8').replace(/
+/g, '
+'));
+copyFileSync(join(root, 'installer', 'install.ps1'), join(out, 'install.ps1'));
+
+// 4. Installationsbefehl neben das Paket legen
 writeFileSync(
   join(out, 'installieren.cmd'),
   [

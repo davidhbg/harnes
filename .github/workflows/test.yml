@@ -29,11 +29,23 @@ jobs:
         env:
           # Ink zeichnet bei CI=true nur das letzte Bild; die Tests bedienen die Oberfläche wie ein Mensch
           CI: 'false'
-      - name: Paket installieren und starten
+      - name: Paket bauen
+        shell: bash
+        run: npm pack && mv harnes-*.tgz harnes-test.tgz
+      - name: Installer ausführen (Linux, macOS)
+        if: runner.os != 'Windows'
+        env:
+          HARNES_PAKET: ${{ github.workspace }}/harnes-test.tgz
+        run: bash installer/install.sh
+      - name: Installer ausführen (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        env:
+          HARNES_PAKET: ${{ github.workspace }}\harnes-test.tgz
+        run: iex (Get-Content -Raw installer/install.ps1)
+      - name: Harnes starten
         shell: bash
         run: |
-          npm pack
-          npm install -g ./harnes-*.tgz
           harnes --version
           harnes --hilfe | head -5
       - name: Deinstallieren
