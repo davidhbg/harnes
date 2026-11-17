@@ -1,6 +1,6 @@
 {
   "name": "harnes",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Dein KI-Team im Terminal: Claude, Codex, DeepSeek und lokale Modelle arbeiten als ein Team – Team-Chat, Aufgabenbrett, Obsidian-Gedächtnis und ein Begleiter mit Stimme.",
   "type": "module",
   "private": true,
