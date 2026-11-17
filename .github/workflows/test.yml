@@ -39,6 +39,7 @@ jobs:
       - name: Deinstallieren
         shell: bash
         run: |
-          npm uninstall -g harnes
+          # Unter Windows hält der Virenscanner frisch installierte Dateien manchmal kurz fest (EBUSY)
+          for i in 1 2 3 4 5; do npm uninstall -g harnes && break; echo "noch belegt, neuer Versuch"; sleep 10; done
           if command -v harnes; then echo "harnes ist noch da"; exit 1; fi
           echo "sauber entfernt"

@@ -81,6 +81,9 @@ Auf allen Systemen:
 npm uninstall -g harnes
 ```
 
+Kommt unter Windows die Meldung `EBUSY`, sind noch Dateien in Gebrauch: alle Harnes-Fenster schließen,
+den Begleiter beenden (Strg+Alt+Q) und den Befehl noch einmal ausführen.
+
 Deine Einstellungen, Schlüssel, Chats und – wenn du keinen eigenen Vault verbunden hast – das Team-Gedächtnis
 bleiben dabei erhalten (im Ordner `.remoteharnes` in deinem Benutzerordner). Wer auch die löschen will:
 

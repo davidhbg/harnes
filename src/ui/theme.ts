@@ -142,7 +142,7 @@ export function bigLogo(word = 'HARNES'): string[] {
   return out;
 }
 
-export function smallLogo(word = 'HARNES REMOTE'): string[] {
+export function smallLogo(word = 'HARNES'): string[] {
   const out = ['', '', ''];
   for (const ch of word.toUpperCase()) {
     const g = SMALL[ch] ?? SMALL[' ']!;

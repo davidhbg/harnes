@@ -226,7 +226,7 @@ export function Start({ config, project, cwd, rows, status, selected, running, r
   const need = rows.length + 23 + (keyEdit ? 5 : 0);
   const useBig = C >= logoW + 4 && R >= (booting ? 18 : need);
   const useSmall = !useBig && C >= 60 && R >= (booting ? 12 : rows.length + 16);
-  const art = useBig ? big : useSmall ? smallLogo('HARNES REMOTE') : [];
+  const art = useBig ? big : useSmall ? smallLogo('HARNES') : [];
   const reveal = booting ? Math.min(1, time / 1100) : 1;
   const cycle = 4200;
   const shine = booting ? undefined : ((time % cycle) / 1000) * (art[0]?.length ?? 0) * 0.9 - 6;
@@ -234,8 +234,8 @@ export function Start({ config, project, cwd, rows, status, selected, running, r
   const logo = art.map((l, i) => logoLine(l, i, { reveal, phase, shine, seed: frame }));
   const sub: Span[] = useBig
     ? [
-        { text: ' '.repeat(Math.max(0, logoW - 23)) },
-        ...gradientSpans('R  E  M  O  T  E', phase, { bold: true, spread: 24 }),
+        { text: ' '.repeat(Math.max(0, logoW - 26)) },
+        ...gradientSpans('K  I  -  T  E  A  M', phase, { bold: true, spread: 24 }),
         { text: '  ◆', color: T.pink },
       ]
     : [];
@@ -266,7 +266,7 @@ export function Start({ config, project, cwd, rows, status, selected, running, r
           </Box>
         ) : null}
         <Box flexDirection="column">
-          {art.length ? logo.map((l, i) => <Row key={i} spans={l} />) : <Row spans={gradientSpans('HARNES REMOTE', phase, { bold: true })} />}
+          {art.length ? logo.map((l, i) => <Row key={i} spans={l} />) : <Row spans={gradientSpans('HARNES', phase, { bold: true })} />}
           {useBig && reveal >= 1 ? <Row spans={sub} /> : <Text> </Text>}
         </Box>
         <Box flexDirection="column" marginTop={1} width={barW + 8}>

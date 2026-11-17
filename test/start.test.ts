@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { banner } from '../src/ui/Start.js';
 import { TermSession } from './term.js';
@@ -21,10 +22,14 @@ function start() {
   mkdirSync(state);
   mkdirSync(join(home, 'home'));
   const fake = resolve('test/fake-login.mjs');
-  const claudeCmd = join(home, 'claude-nachbau.cmd');
-  writeFileSync(claudeCmd, `@set FAKE_ROLLE=claude\r\n@"${process.execPath}" "${fake}" %*\r\n`);
+  const claudeCmd = join(home, process.platform === 'win32' ? 'claude-nachbau.cmd' : 'claude-nachbau');
+  if (process.platform === 'win32') writeFileSync(claudeCmd, `@set FAKE_ROLLE=claude\r\n@"${process.execPath}" "${fake}" %*\r\n`);
+  else {
+    writeFileSync(claudeCmd, `#!/bin/sh\nFAKE_ROLLE=claude exec "${process.execPath}" "${fake}" "$@"\n`);
+    chmodSync(claudeCmd, 0o755);
+  }
   const codexJs = join(home, 'codex-nachbau.mjs');
-  writeFileSync(codexJs, `process.env.FAKE_ROLLE = 'codex';\nawait import(${JSON.stringify('file:///' + fake.split('\\').join('/'))});\n`);
+  writeFileSync(codexJs, `process.env.FAKE_ROLLE = 'codex';\nawait import(${JSON.stringify(pathToFileURL(fake).href)});\n`);
   writeFileSync(
     join(home, 'home', 'config.json'),
     JSON.stringify({ claudeAbo: { befehl: claudeCmd }, codex: { befehl: codexJs }, anbieter: { ollama: { baseUrl: 'http://127.0.0.1:9/v1', modell: 'x' } } }),
