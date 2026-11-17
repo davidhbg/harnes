@@ -50,7 +50,7 @@ export const COMMANDS: { name: string; args?: string; desc: string; kinds?: Agen
   { name: '/pause', desc: 'Zustellung anhalten' },
   { name: '/weiter', desc: 'Zustellung fortsetzen' },
   { name: '/wieder', desc: 'Sitzungen vom letzten Mal öffnen' },
-  { name: '/leeren', desc: 'diesen Chat leeren (im Team-Chat auch /clear)' },
+  { name: '/leeren', desc: 'diesen Chat leeren (auch /clear)' },
   { name: '/guthaben', desc: 'Guthaben der API-Anbieter neu abfragen' },
   { name: '/vault', args: '[ordner]', desc: 'Vault anzeigen oder einen anderen verbinden' },
   { name: '/freigaben', desc: 'offene Freigaben anzeigen' },
@@ -454,6 +454,13 @@ Rufe zuerst bildschirm_foto auf (Bildschirm im Moment der Frage). Antworte kurz 
     default: {
       // Unbekannte Befehle im Kanal einer Sitzung gehen an die Sitzung selbst (z. B. /compact, /review)
       const here = ui.channel.startsWith('agent:') ? ui.channel.slice(6) : undefined;
+      // /clear im Privatchat: Chat in Harnes leeren und (bei Claude Code) auch das Gespräch der Sitzung neu beginnen
+      if (cmd === '/clear' && here) {
+        hub.clearChannel(ui.channel);
+        ui.seen[ui.channel] = 0;
+        if (hub.agents.get(here)?.adapter?.command) await hub.sendCommand(here, line.trim());
+        return 'Chat geleert.';
+      }
       if (here && hub.agents.get(here)?.adapter?.command) return hub.sendCommand(here, line.trim());
       if (cmd === '/clear' && ui.channel === 'team') {
         const n = hub.clearChannel('team');

@@ -315,7 +315,7 @@ export function helpLines(humanLabel: string): Line[] {
     row('/rename <neuer name>', 'Sitzung umbenennen'),
     row('/rolle <rolle>', 'Rolle: tester, reviewer, planer, doku, sicherheit, entwickler'),
     row('/suche <text>', 'Verlauf aller Chats durchsuchen'),
-    row('/leeren  ·  /clear im Team-Chat', 'diesen Chat leeren'),
+    row('/leeren  ·  /clear', 'diesen Chat leeren (bei Claude Code auch das Gespräch)'),
     row('/projekt', 'anderen Projektordner öffnen (oder Klick auf den Pfad unten links)'),
     row('/vault [ordner]', 'Vault anzeigen oder einen anderen verbinden'),
     row('/start', 'Startseite: Zeitpläne, Store, Projekte, MCP, Einstellungen'),

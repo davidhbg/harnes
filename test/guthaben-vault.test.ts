@@ -135,6 +135,11 @@ describe('Chat leeren', () => {
     ui.channel = 'agent:anna';
     expect(await runCommand('/leeren', { hub, ui, action: () => undefined })).toBe('Chat geleert.');
     expect(hub.channelMessages('agent:anna')).toHaveLength(0);
+    // /clear leert auch den Privatchat
+    hub.post(hub.human, 'anna', 'schweig');
+    await until(() => idle(hub) && hub.agents.get('anna')!.usage.turns === 3);
+    expect(await runCommand('/clear', { hub, ui, action: () => undefined })).toBe('Chat geleert.');
+    expect(hub.channelMessages('agent:anna')).toHaveLength(0);
   });
 });
 
