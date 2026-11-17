@@ -86,6 +86,22 @@ describe('Claude im Abo (mit Nachbau von Claude Code)', () => {
     expect(await logoutOf(config, 'claude')).toContain('abgemeldet');
   }, 60_000);
 
+  it('fragt Claude Code nach Ordner-Vertrauen, kommt eine Freigabe-Karte (Ja startet, Nein beendet)', async () => {
+    const { hub, dir } = await setup();
+    writeFileSync(join(dir, '.fake-trust'), '');
+    const yes = await hub.addAgent({ kind: 'claude-abo', name: 'claude' });
+    await until(() => hub.approvals.some((a) => a.agent === 'claude'), 15_000);
+    expect(hub.approvals[0]!.title).toContain('vertraust');
+    hub.resolveApproval(hub.approvals[0]!.id, 'ja');
+    await until(() => yes.status === 'wartet', 15_000);
+
+    const no = await hub.addAgent({ kind: 'claude-abo', name: 'zweiter' });
+    await until(() => hub.approvals.some((a) => a.agent === 'zweiter'), 15_000);
+    hub.resolveApproval(hub.approvals.find((a) => a.agent === 'zweiter')!.id, 'nein');
+    await until(() => no.status === 'fehler', 10_000);
+    expect(no.detail).toContain('nicht vertraut');
+  }, 60_000);
+
   it('Post, die während der Arbeit ankommt, wird am Rundenende direkt nachgereicht', async () => {
     const { hub } = await setup();
     const rec = await hub.addAgent({ kind: 'claude-abo', name: 'claude' });

@@ -5,7 +5,7 @@
 //   langsam            → arbeitet 4 Sekunden (zum Unterbrechen mit Esc)
 //   fehlschlag         → Runde endet mit StopFailure (wie „Login expired“)
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
 const opt = (name) => {
@@ -107,6 +107,32 @@ async function turn(prompt) {
 }
 
 say('FAKE CLAUDE CODE v0 (Test)');
+// Liegt .fake-trust im Ordner: erst fragen, ob der Ordner vertraut wird (wie das echte Programm, „No, exit“ vorausgewählt)
+if (existsSync('.fake-trust')) {
+  let sel = 0;
+  const draw = () => {
+    say(' Quick safety check: Is this a project you created or one you trust?');
+    say(`${sel === 0 ? ' ❯' : '  '} No, exit`);
+    say(`${sel === 1 ? ' ❯' : '  '} Yes, I trust this folder`);
+    say(' Enter to confirm · Esc to cancel');
+  };
+  draw();
+  const trusted = await new Promise((done) => {
+    process.stdin.setRawMode?.(true);
+    process.stdin.resume();
+    const onKey = (buf) => {
+      const t = buf.toString('utf8');
+      if (t.includes('\u001b[B')) (sel = 1), draw();
+      else if (t.includes('\u001b[A')) (sel = 0), draw();
+      if (t.includes('\r')) {
+        process.stdin.off('data', onKey);
+        done(sel === 1);
+      }
+    };
+    process.stdin.on('data', onKey);
+  });
+  if (!trusted) process.exit(1);
+}
 const startOut = await runHook('SessionStart', { source: 'startup' });
 say(`Teamregeln erhalten: ${startOut?.hookSpecificOutput?.additionalContext ? 'ja' : 'nein'}`);
 say('❯ ');

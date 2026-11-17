@@ -1,6 +1,6 @@
 import { closeSync, mkdirSync, openSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, isAbsolute, join } from 'node:path';
+import { dirname, isAbsolute, join, resolve } from 'node:path';
 import serializePkg from '@xterm/addon-serialize';
 import xtermPkg from '@xterm/headless';
 import pty from 'node-pty';
@@ -48,6 +48,8 @@ export class ClaudeAboAdapter implements Adapter {
   private transcriptTail = '';
   private usageById = new Map<string, { input: number; output: number; cache: number; context: number }>();
   private readyTimer?: NodeJS.Timeout;
+  private trustWatch?: NodeJS.Timeout;
+  private trustAsked = false;
   private onResize = () => this.resize(process.stdout.columns || 120, process.stdout.rows || 40);
 
   constructor(private ctx: AdapterContext) {}
@@ -136,6 +138,7 @@ export class ClaudeAboAdapter implements Adapter {
     });
     this.proc.onExit(({ exitCode }) => {
       this.exited = true;
+      this.stopTrustWatch();
       this.attached?.onExit();
       this.attached = undefined;
       if (this.stopped) return;
@@ -152,6 +155,62 @@ export class ClaudeAboAdapter implements Adapter {
       }
     }, 25_000);
     this.readyTimer.unref();
+    // Ordner vertrauen: Claude Code fragt beim ersten Start in einem Ordner (im Benutzerordner jedes Mal),
+    // vorausgewählt ist „No, exit“. Harnes fragt deshalb selbst mit einer Freigabe-Karte nach.
+    this.trustWatch = setInterval(() => void this.checkTrust(), 400);
+    this.trustWatch.unref();
+  }
+
+  private stopTrustWatch(): void {
+    if (this.trustWatch) clearInterval(this.trustWatch);
+    this.trustWatch = undefined;
+  }
+
+  private async checkTrust(): Promise<void> {
+    if (this.ready || this.stopped || this.exited) return this.stopTrustWatch();
+    // Schaut der Teamleiter selbst ins Terminal, beantwortet er die Frage dort
+    if (this.trustAsked || this.exclusive) return;
+    const isTrustLine = (l: string) => /Yes, I trust this folder/i.test(l);
+    if (!this.screenLines().some(isTrustLine)) return;
+    this.trustAsked = true;
+    const { ctx } = this;
+    const home = resolve(ctx.cwd).toLowerCase() === resolve(homedir()).toLowerCase();
+    const decision = await ctx.requestApproval({
+      title: `${ctx.name}: Claude Code fragt, ob du dem Ordner ${ctx.cwd} vertraust`,
+      detail:
+        'Claude Code darf dann in diesem Ordner Dateien lesen, bearbeiten und Befehle ausführen. Nein beendet die Sitzung.' +
+        (home ? ' Im Benutzerordner fragt Claude Code bei jedem Start – mit einem Projektordner (/projekt) nur beim ersten Mal.' : ''),
+      allowAlways: false,
+      timeoutMs: 600_000,
+    });
+    if (this.stopped || this.exited || this.ready) return;
+    if (decision === 'timeout') {
+      this.trustAsked = false; // noch einmal fragen
+      return;
+    }
+    const lines = this.screenLines();
+    const target = lines.findIndex(isTrustLine);
+    if (target < 0) return; // inzwischen im Terminal beantwortet
+    if (decision === 'nein') {
+      ctx.log('info', `Ordner ${ctx.cwd} nicht vertraut – Claude Code wird beendet.`);
+      this.stopped = true;
+      this.stopTrustWatch();
+      try {
+        if (!this.exited) this.proc?.kill();
+      } catch {
+        /* schon weg */
+      }
+      ctx.status('fehler', 'Ordner nicht vertraut. Mit /projekt einen anderen Ordner wählen oder /neu claude neu starten.');
+      return;
+    }
+    // Markierung (❯) auf „Yes, I trust this folder“ bewegen und bestätigen
+    const cursor = lines.findIndex((l) => l.trimStart().startsWith('❯'));
+    const steps = cursor < 0 ? 1 : target - cursor;
+    this.proc?.write((steps >= 0 ? '\x1b[B' : '\x1b[A').repeat(Math.abs(steps)));
+    setTimeout(() => {
+      if (!this.stopped && !this.exited) this.proc?.write('\r');
+    }, 200);
+    ctx.status('startet', 'Claude Code startet');
   }
 
   private resize(cols: number, rows: number): void {
@@ -237,6 +296,7 @@ export class ClaudeAboAdapter implements Adapter {
         this.ready = true;
         this.blocks = 0;
         if (this.readyTimer) clearTimeout(this.readyTimer);
+        this.stopTrustWatch();
         ctx.status('wartet');
         return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: ctx.systemPrompt } };
       }
@@ -408,6 +468,7 @@ export class ClaudeAboAdapter implements Adapter {
   async stop(): Promise<void> {
     this.stopped = true;
     if (this.readyTimer) clearTimeout(this.readyTimer);
+    this.stopTrustWatch();
     process.stdout.off('resize', this.onResize);
     try {
       if (!this.exited) this.proc?.kill();

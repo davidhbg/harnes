@@ -30,6 +30,9 @@ Bedienung und Überblick: `README.md`.
 - **Kleine Modelle** ahmen das Zustell-Format nach; `cleanFinal()` in `hub/prompts.ts` räumt das auf.
 - **Kurznamen unter Windows** (`C:\Users\NAME~1\…`): Claude Code erkennt einen vertrauten Ordner
   daran nicht wieder und fragt erneut. Projektpfade deshalb mit `realpathSync.native()` ausschreiben.
+- **Ordner vertrauen:** Claude Code fragt beim ersten Start in einem Ordner (im Benutzerordner bei *jedem* Start),
+  vorausgewählt ist „No, exit“ – ein Enter beendet die Sitzung sofort. `checkTrust()` in `adapters/claude-abo.ts`
+  erkennt die Frage auf dem Bildschirm und zeigt eine Freigabe-Karte.
 - **Adressen öffnen unter Windows** nie über `cmd /c start` (schneidet bei `&` ab), sondern `openInBrowser()`.
 - **`fetch` ignoriert eine eigene `host`-Kopfzeile**; für Tests der Host-Prüfung `node:http` nehmen.
 - **Anmelden (claude auth login, codex login)** läuft per `spawn` mit `stdio: 'inherit'` im selben Terminal,
